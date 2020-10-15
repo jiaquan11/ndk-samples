@@ -11,7 +11,7 @@ simply follow these 3 steps:
   done with `android.buildFeatures.prefab=true` in the application's build.gradle file.
 * Declare the dependencies in the app module's [build.gradle] in the same way you as would do with Kotlin/Java
   dependencies.
-* Add the dependencies into the native module's [android.mk] or [CMakeLists.txt]
+* Add the dependencies into the native module's [Android.mk] or [CMakeLists.txt]
 
 From here on, the [headers] and [libraries] in the dependencies are available for your native build system!
 

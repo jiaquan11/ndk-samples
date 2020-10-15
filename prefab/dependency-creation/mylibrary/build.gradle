@@ -52,8 +52,8 @@ android {
     // Avoid packing the unnecessary libraries into final AAR, for details
     // refer to https://issuetracker.google.com/issues/168777344#comment5
     packagingOptions {
-//        exclude("**/libmylibrary.so")
-//        exclude("**/libc++_shared.so")
+        exclude("**/libmylibrary.so")
+        exclude("**/libc++_shared.so")
     }
 
 }

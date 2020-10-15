@@ -17,8 +17,8 @@ with Android Gradle Plugin 4.1+, make the following changes to your Android Libr
         headers "src/main/cpp/include"
     }
 ```
-* (Optional)If the exported native modules are NOT used by local Kotlin/Java modules in this AAR,
-  you could temporarily avoid [the unnecessary duplication inside AAR]
+* (Optional) If the exported native modules are **not** used by the Kotlin/Java modules in this AAR,
+  you could avoid [the unnecessary duplication inside AAR]
 ```
     packagingOptions {
         exclude("**/libmylibrary.so")
@@ -26,21 +26,19 @@ with Android Gradle Plugin 4.1+, make the following changes to your Android Libr
     }
 ```
 This sample builds a trivial library called `mylibrary` (libmylibrary.so), and packs it into 
-mylibrary.aar. From here you could distribute the AAR via Maven center or in other ways.
+mylibrary.aar. From here you could distribute the AAR via Maven Center or in other ways.
 For how to use the generated dependency AAR, refer to [the dependency-integration sample] in this repo; for the official documentation about Prefab in AGP, go to [C/C++ dependencies] website.
-
-[Prefab]:https://google.github.io/prefab/
-[build.gradle]:https://github.com/android/ndk-samples/blob/master/prefab/prefab-publishing/mylibrary/build.gradle#L64
-[the dependency-integration sample]:https://github.com/android/ndk-samples/tree/main/prefab/dependency-integration
-
-
 
 **Note** that you could use any other ways to generate the prefab AAR, as long as the AAR contains a
 legal prefab package.
 
 
-[the official C/C++ dependency documentation]: https://developer.android.com/studio/build/native-dependencies?buildsystem=cmake&agpversion=4.1
-[the unnecessary duplication inside AAR]:https://b.corp.google.com/issues/168777344#comment5
+[Prefab]:https://google.github.io/prefab/
+[build.gradle]:https://github.com/android/ndk-samples/blob/master/prefab/prefab-publishing/mylibrary/build.gradle#L64
+[the dependency-integration sample]:https://github.com/android/ndk-samples/tree/main/prefab/dependency-integration
+[the unnecessary duplication inside AAR]:https://issuetracker.google.com/issues/168777344#comment5
+[C/C++ dependencies]: https://developer.android.com/studio/build/native-dependencies?buildsystem=cmake&agpversion=4.1
+
 
 Pre-requisites
 --------------

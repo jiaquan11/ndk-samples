@@ -7,7 +7,7 @@ C/C++ build system, and the requirement is that the C/C++ libraries be organized
 pre-defined format and packed inside AARs. Prefab's flow in Android Gradle Plugin, at high level,
 could be viewed as:
 
-1. Use Prefab to package C/C++ libraries (including the header files), called modules, into AAR
+1. Use AGP to pack C/C++ libraries (including the header files), called modules, into AAR
 1. Distribute AARs with maven center or other mechanisms, but this is not Prefab specific
 1. Add AAR dependency to your application, now you have access to the AAR ( but not prefab modules yet);
    but this is not Prefab specific either
