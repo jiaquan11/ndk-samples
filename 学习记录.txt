@@ -1,2 +1,6 @@
 ndk-samples项目学习(已完成)
-1.hello-jni
+1.hello-jni  
+简单的从Java层调用JNI方法
+
+2.hello-libs
+cmake脚本中引入第三方的数学和时间库，并调用方法
