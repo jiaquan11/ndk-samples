@@ -23,12 +23,14 @@ android {
                     'proguard-rules.pro'
         }
     }
+    //指定cmake编译脚本，脚本中引入头文件及链接库及源码文件，生成目标库
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
         }
     }
 
+    //指定二进制平台过滤
     flavorDimensions 'cpuArch'
     productFlavors {
         arm8 {

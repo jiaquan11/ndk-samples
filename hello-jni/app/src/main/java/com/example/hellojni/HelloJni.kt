@@ -20,7 +20,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.hellojni.databinding.ActivityHelloJniBinding
 
 class HelloJni : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         /*
@@ -38,7 +37,7 @@ class HelloJni : AppCompatActivity() {
      * 'hello-jni' native library, which is packaged
      * with this application.
      */
-    external fun stringFromJNI(): String?
+    external fun stringFromJNI(): String? //Kotlin  java native方法声明方式
 
     /*
      * This is another native method declaration that is *not*
@@ -51,7 +50,7 @@ class HelloJni : AppCompatActivity() {
      * Trying to call this function will result in a
      * java.lang.UnsatisfiedLinkError exception !
      */
-    external fun unimplementedStringFromJNI(): String?
+    external fun unimplementedStringFromJNI(): String? //java native方法声明
 
     companion object {
     /*
@@ -61,7 +60,7 @@ class HelloJni : AppCompatActivity() {
      * at the installation time by the package manager.
      */
         init {
-            System.loadLibrary("hello-jni")
+            System.loadLibrary("hello-jni")//加载动态库so
         }
     }
 }
