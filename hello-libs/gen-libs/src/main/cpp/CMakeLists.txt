@@ -25,8 +25,11 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 set(lib_src_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(lib_build_DIR $ENV{HOME}/tmp/${ANDROID_ABI})
-file(MAKE_DIRECTORY ${lib_build_DIR})
+file(MAKE_DIRECTORY ${lib_build_DIR}) #file 递归创建文件夹
 
-add_subdirectory(${lib_src_DIR}/gmath ${lib_build_DIR}/gmath)
-add_subdirectory(${lib_src_DIR}/gperf ${lib_build_DIR}/gperf)
+add_subdirectory(${lib_src_DIR}/gmath ${lib_build_DIR}/gmath) #创建增加子目录
+add_subdirectory(${lib_src_DIR}/gperf ${lib_build_DIR}/gperf) #创建增加子目录
+
+#cpp/gmath/src/
+#cpp/gmath/armv7
 

@@ -22,6 +22,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set(CMAKE_VERBOSE_MAKEFILE on)
 
+#添加编译生成静态库
 add_library(gmath STATIC src/gmath.c)
 
 # copy out the lib binary... need to leave the static lib around to pass gradle check

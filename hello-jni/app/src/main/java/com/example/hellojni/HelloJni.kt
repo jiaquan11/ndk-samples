@@ -18,6 +18,9 @@ package com.example.hellojni
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.hellojni.databinding.ActivityHelloJniBinding
+import java.io.BufferedReader
+import java.io.FileReader
+import java.io.IOException
 
 class HelloJni : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +32,41 @@ class HelloJni : AppCompatActivity() {
          */
         val binding = ActivityHelloJniBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        binding.helloTextview.text = stringFromJNI()
+        binding.helloTextview.text = stringFromJNI() + getCpuName()
+    }
+
+    /*
+    * // 获取CPU名字 Java代码
+    public static String getCpuName() {
+        try {
+            FileReader fr = new FileReader("/proc/cpuinfo");
+            BufferedReader br = new BufferedReader(fr);
+            String text = br.readLine();
+            String[] array = text.split(":\\s+", 2);
+            if (array.length >= 2) {
+                return array[1];
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    * */
+
+    // 获取CPU名字 (Kotlin代码)
+    fun getCpuName(): String? {
+        try {
+            val fr = FileReader("/proc/cpuinfo")
+            val br = BufferedReader(fr)
+            val text: String = br.readLine()
+            val array = text.split(":\\s+".toRegex(), 2).toTypedArray()
+            if (array.size >= 2) {
+                return array[1]
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        return null
     }
 
     /*

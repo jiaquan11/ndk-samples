@@ -33,7 +33,7 @@ set_target_properties(lib_gperf PROPERTIES IMPORTED_LOCATION
     ${distribution_DIR}/gperf/lib/${ANDROID_ABI}/libgperf.so)#指定库的位置
 
 # build application's shared lib
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")#指定C++11编译
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")# 添加C++编译器的编译选项，支持C++11标准和GNU扩展特性
 
 #添加库，编译源码文件
 add_library(hello-libs SHARED

@@ -15,7 +15,6 @@ android {
                 // explicitly build libs
                 targets 'gmath', 'gperf'
             }
-           
         }
     }
     buildTypes {
