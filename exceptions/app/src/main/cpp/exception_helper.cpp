@@ -26,7 +26,8 @@
 
 #include "exception_helper.h"
 
-#include <android/log.h>
+#define LOG_TAG "exception_helper::"
+#include <base/logging.h>
 
 #include <string>
 
@@ -119,9 +120,8 @@ static void DiscardPendingException(JNIEnv* env, const char* className) {
   }
   std::string summary;
   GetExceptionSummary(env, exception, &summary);
-  __android_log_print(ANDROID_LOG_WARN, "exception_helper::",
-                      "Discarding pending exception (%s) to throw %s",
-                      summary.c_str(), className);
+  LOGW("Discarding pending exception (%s) to throw %s", summary.c_str(),
+       className);
   env->DeleteLocalRef(exception);
 }
 
@@ -139,30 +139,23 @@ static int ThrowException(JNIEnv* env, const char* className,
      * end block. */
     exceptionClass = env->FindClass(className);
     if (exceptionClass == NULL) {
-      __android_log_print(ANDROID_LOG_ERROR, "exception_helper::",
-                          "Unable to find exception class %s", className);
+      LOGE("Unable to find exception class %s", className);
       /* an exception, most likely ClassNotFoundException, will now be pending
        */
       goto end;
     }
     jmethodID init = env->GetMethodID(exceptionClass, "<init>", ctorSig);
     if (init == NULL) {
-      __android_log_print(ANDROID_LOG_ERROR, "exception_helper::",
-                          "Failed to find constructor for '%s' '%s'", className,
-                          ctorSig);
+      LOGE("Failed to find constructor for '%s' '%s'", className, ctorSig);
       goto end;
     }
     jobject instance = env->NewObjectV(exceptionClass, init, args);
     if (instance == NULL) {
-      __android_log_print(ANDROID_LOG_ERROR,
-                          "exception_helper::", "Failed to construct '%s'",
-                          className);
+      LOGE("Failed to construct '%s'", className);
       goto end;
     }
     if (env->Throw((jthrowable)instance) != JNI_OK) {
-      __android_log_print(ANDROID_LOG_ERROR,
-                          "exception_helper::", "Failed to throw '%s'",
-                          className);
+      LOGE("Failed to throw '%s'", className);
       /* an exception, most likely OOM, will now be pending */
       goto end;
     }

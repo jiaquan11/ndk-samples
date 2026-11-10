@@ -19,7 +19,8 @@
 #include <algorithm>
 #include <cmath>
 
-#include "android_debug.h"
+#define LOG_TAG "NDK_Sample"
+#include <base/logging.h>
 
 #define IS_LOW_CHAR(c) ((c) >= 'a' && (c) <= 'z')
 #define TO_UPPER_CHAR(c) (c + 'A' - 'a')
@@ -63,7 +64,7 @@ bool AssetReadFile(AAssetManager* assetManager, std::string& assetName,
   if (!assetName.length()) return false;
   AAsset* assetDescriptor =
       AAssetManager_open(assetManager, assetName.c_str(), AASSET_MODE_BUFFER);
-  ASSERT(assetDescriptor, "%s does not exist in %s", assetName.c_str(),
+  CHECKF(assetDescriptor, "%s does not exist in %s", assetName.c_str(),
          __FUNCTION__);
   size_t remaining = AAsset_getLength(assetDescriptor);
 

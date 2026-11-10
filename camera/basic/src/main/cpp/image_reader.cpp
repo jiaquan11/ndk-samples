@@ -63,7 +63,7 @@ ImageReader::ImageReader(ImageFormat* res, enum AIMAGE_FORMATS format)
 
   media_status_t status = AImageReader_new(res->width, res->height, format,
                                            MAX_BUF_COUNT, &reader_);
-  ASSERT(reader_ && status == AMEDIA_OK, "Failed to create AImageReader");
+  CHECKF(reader_ && status == AMEDIA_OK, "Failed to create AImageReader");
 
   AImageReader_ImageListener listener{
       .context = this,
@@ -73,7 +73,7 @@ ImageReader::ImageReader(ImageFormat* res, enum AIMAGE_FORMATS format)
 }
 
 ImageReader::~ImageReader() {
-  ASSERT(reader_, "NULL Pointer to %s", __FUNCTION__);
+  CHECKF(reader_, "NULL Pointer to %s", __FUNCTION__);
   AImageReader_delete(reader_);
 }
 
@@ -86,11 +86,11 @@ void ImageReader::RegisterCallback(
 void ImageReader::ImageCallback(AImageReader* reader) {
   int32_t format;
   media_status_t status = AImageReader_getFormat(reader, &format);
-  ASSERT(status == AMEDIA_OK, "Failed to get the media format");
+  CHECKF(status == AMEDIA_OK, "Failed to get the media format");
   if (format == AIMAGE_FORMAT_JPEG) {
     AImage* image = nullptr;
     media_status_t status = AImageReader_acquireNextImage(reader, &image);
-    ASSERT(status == AMEDIA_OK && image, "Image is not available");
+    CHECKF(status == AMEDIA_OK && image, "Image is not available");
 
     // Create a thread and write out the jpeg files
     std::thread writeFileHandler(&ImageReader::WriteFile, this, image);
@@ -102,7 +102,7 @@ ANativeWindow* ImageReader::GetNativeWindow(void) {
   if (!reader_) return nullptr;
   ANativeWindow* nativeWindow;
   media_status_t status = AImageReader_getWindow(reader_, &nativeWindow);
-  ASSERT(status == AMEDIA_OK, "Could not get ANativeWindow");
+  CHECKF(status == AMEDIA_OK, "Could not get ANativeWindow");
 
   return nativeWindow;
 }
@@ -207,16 +207,16 @@ static inline uint32_t YUV2RGB(int nY, int nU, int nV) {
  *            it will be deleted via {@link AImage_delete}
  */
 bool ImageReader::DisplayImage(ANativeWindow_Buffer* buf, AImage* image) {
-  ASSERT(buf->format == WINDOW_FORMAT_RGBX_8888 ||
+  CHECKF(buf->format == WINDOW_FORMAT_RGBX_8888 ||
              buf->format == WINDOW_FORMAT_RGBA_8888,
          "Not supported buffer format");
 
   int32_t srcFormat = -1;
   AImage_getFormat(image, &srcFormat);
-  ASSERT(AIMAGE_FORMAT_YUV_420_888 == srcFormat, "Failed to get format");
+  CHECKF(AIMAGE_FORMAT_YUV_420_888 == srcFormat, "Failed to get format");
   int32_t srcPlanes = 0;
   AImage_getNumberOfPlanes(image, &srcPlanes);
-  ASSERT(srcPlanes == 3, "Is not 3 planes");
+  CHECKF(srcPlanes == 3, "Is not 3 planes");
 
   switch (presentRotation_) {
     case 0:
@@ -232,7 +232,7 @@ bool ImageReader::DisplayImage(ANativeWindow_Buffer* buf, AImage* image) {
       PresentImage270(buf, image);
       break;
     default:
-      ASSERT(0, "NOT recognized display rotation: %d", presentRotation_);
+      CHECKF(0, "NOT recognized display rotation: %d", presentRotation_);
   }
 
   AImage_delete(image);
@@ -414,7 +414,7 @@ void ImageReader::SetPresentRotation(int32_t angle) {
 void ImageReader::WriteFile(AImage* image) {
   int planeCount;
   media_status_t status = AImage_getNumberOfPlanes(image, &planeCount);
-  ASSERT(status == AMEDIA_OK && planeCount == 1,
+  CHECKF(status == AMEDIA_OK && planeCount == 1,
          "Error: getNumberOfPlanes() planeCount = %d", planeCount);
   uint8_t* data = nullptr;
   int len = 0;

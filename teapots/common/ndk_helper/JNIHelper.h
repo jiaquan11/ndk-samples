@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <android/log.h>
 #include <android_native_app_glue.h>
 #include <assert.h>
+#include <base/logging.h>
 #include <jni.h>
 #include <pthread.h>
 
@@ -26,19 +26,6 @@
 #include <mutex>
 #include <string>
 #include <vector>
-
-#define LOGI(...)                                                           \
-  ((void)__android_log_print(                                               \
-      ANDROID_LOG_INFO, ndk_helper::JNIHelper::GetInstance()->GetAppName(), \
-      __VA_ARGS__))
-#define LOGW(...)                                                           \
-  ((void)__android_log_print(                                               \
-      ANDROID_LOG_WARN, ndk_helper::JNIHelper::GetInstance()->GetAppName(), \
-      __VA_ARGS__))
-#define LOGE(...)                                                            \
-  ((void)__android_log_print(                                                \
-      ANDROID_LOG_ERROR, ndk_helper::JNIHelper::GetInstance()->GetAppName(), \
-      __VA_ARGS__))
 
 namespace ndk_helper {
 

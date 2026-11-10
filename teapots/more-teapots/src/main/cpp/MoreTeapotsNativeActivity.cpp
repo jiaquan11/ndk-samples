@@ -19,7 +19,6 @@
 //--------------------------------------------------------------------------------
 #include <EGL/egl.h>
 #include <GLES/gl.h>
-#include <android/log.h>
 #include <android/native_window_jni.h>
 #include <android/sensor.h>
 #include <android_native_app_glue.h>

@@ -34,7 +34,7 @@ const Vertex QUAD[4] = {
 bool checkGlError(const char* funcName) {
   GLint err = glGetError();
   if (err != GL_NO_ERROR) {
-    ALOGE("GL error after %s(): 0x%08x\n", funcName, err);
+    LOGE("GL error after %s(): 0x%08x\n", funcName, err);
     return true;
   }
   return false;
@@ -58,8 +58,8 @@ GLuint createShader(GLenum shaderType, const char* src) {
       GLchar* infoLog = (GLchar*)malloc(infoLogLen);
       if (infoLog) {
         glGetShaderInfoLog(shader, infoLogLen, NULL, infoLog);
-        ALOGE("Could not compile %s shader:\n%s\n",
-              shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment", infoLog);
+        LOGE("Could not compile %s shader:\n%s\n",
+             shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment", infoLog);
         free(infoLog);
       }
     }
@@ -93,14 +93,14 @@ GLuint createProgram(const char* vtxSrc, const char* fragSrc) {
   glLinkProgram(program);
   glGetProgramiv(program, GL_LINK_STATUS, &linked);
   if (!linked) {
-    ALOGE("Could not link program");
+    LOGE("Could not link program");
     GLint infoLogLen = 0;
     glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLen);
     if (infoLogLen) {
       GLchar* infoLog = (GLchar*)malloc(infoLogLen);
       if (infoLog) {
         glGetProgramInfoLog(program, infoLogLen, NULL, infoLog);
-        ALOGE("Could not link program:\n%s\n", infoLog);
+        LOGE("Could not link program:\n%s\n", infoLog);
         free(infoLog);
       }
     }
@@ -116,7 +116,7 @@ exit:
 
 static void printGlString(const char* name, GLenum s) {
   const char* v = (const char*)glGetString(s);
-  ALOGV("GL %s: %s\n", name, v);
+  LOGV("GL %s: %s\n", name, v);
 }
 
 // ----------------------------------------------------------------------------
@@ -249,7 +249,7 @@ void Init(JNIEnv*, jclass) {
   } else if (strstr(versionStr, "OpenGL ES 2.")) {
     g_renderer = createES2Renderer();
   } else {
-    ALOGE("Unsupported OpenGL ES version");
+    LOGE("Unsupported OpenGL ES version");
   }
 }
 

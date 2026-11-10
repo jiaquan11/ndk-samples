@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+#define LOG_TAG "hellovkjni"
+#include <base/logging.h>
+
 #include <android/asset_manager.h>
-#include <android/log.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <assert.h>
@@ -39,9 +41,6 @@
  */
 
 namespace vkt {
-#define LOG_TAG "hellovkjni"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define VK_CHECK(x)                           \
   do {                                        \
     VkResult err = x;                         \
@@ -132,7 +131,21 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
               void* /* pUserData */) {
   auto ms = toStringMessageSeverity(messageSeverity);
   auto mt = toStringMessageType(messageType);
-  printf("[%s: %s]\n%s\n", ms, mt, pCallbackData->pMessage);
+  switch (messageSeverity) {
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+      LOGE("[%s: %s]\n%s", ms, mt, pCallbackData->pMessage);
+      break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+      LOGW("[%s: %s]\n%s", ms, mt, pCallbackData->pMessage);
+      break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+      LOGI("[%s: %s]\n%s", ms, mt, pCallbackData->pMessage);
+      break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+    default:
+      LOGV("[%s: %s]\n%s", ms, mt, pCallbackData->pMessage);
+      break;
+  }
 
   return VK_FALSE;
 }

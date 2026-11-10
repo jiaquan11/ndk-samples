@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <libgen.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -33,12 +35,31 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 #include "base/macros.h"
 #include "logging_splitters.h"
 
 namespace ndksamples::base {
+
+static std::string StringVPrintf(const char* format, va_list args) {
+  if (format == nullptr) {
+    return "<null log format>";
+  }
+
+  char* buffer = nullptr;
+  va_list format_args;
+  va_copy(format_args, args);
+  const int written = vasprintf(&buffer, format, format_args);
+  va_end(format_args);
+  if (written < 0 || buffer == nullptr) {
+    free(buffer);
+    return "<log formatting failed>";
+  }
+
+  std::string result(buffer, static_cast<size_t>(written));
+  free(buffer);
+  return result;
+}
 
 static const char* GetFileBasename(const char* file) {
   // We can't use basename(3) even on Unix because the Mac doesn't
@@ -117,7 +138,10 @@ void SetDefaultTag(const std::string_view tag) {
 static bool gInitialized = false;
 
 // Only used for Q fallback.
-static LogSeverity gMinimumLogSeverity = INFO;
+// Do not pre-filter VERBOSE/DEBUG before liblog can apply per-tag properties.
+// Callers can still raise this process-local threshold with
+// SetMinimumLogSeverity().
+static std::atomic<LogSeverity> gMinimumLogSeverity{VERBOSE};
 
 void DefaultAborter(const char* abort_message) {
   android_set_abort_message(abort_message);
@@ -253,10 +277,55 @@ LogMessage::~LogMessage() {
   // Abort if necessary.
   if (data_->GetSeverity() == FATAL) {
     Aborter()(msg.c_str());
+    // A custom aborter is expected not to return. Keep the FATAL contract even
+    // if a misconfigured callback does return.
+    abort();
   }
 }
 
 std::ostream& LogMessage::stream() { return data_->GetBuffer(); }
+
+void LogVPrint(LogSeverity severity, const char* tag, const char* file,
+               unsigned int line, const char* format, va_list args) {
+  LogMessage(file, line, severity, tag, -1).stream()
+      << StringVPrintf(format, args);
+}
+
+void LogPrint(LogSeverity severity, const char* tag, const char* file,
+              unsigned int line, const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  LogVPrint(severity, tag, file, line, format, args);
+  va_end(args);
+}
+
+void LogVPrintErrno(LogSeverity severity, const char* tag, const char* file,
+                    unsigned int line, int error, const char* format,
+                    va_list args) {
+  LogMessage(file, line, severity, tag, error).stream()
+      << StringVPrintf(format, args);
+}
+
+void LogPrintErrno(LogSeverity severity, const char* tag, const char* file,
+                   unsigned int line, int error, const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  LogVPrintErrno(severity, tag, file, line, error, format, args);
+  va_end(args);
+}
+
+[[noreturn]] void CheckFailed(const char* condition, const char* tag,
+                              const char* file, unsigned int line,
+                              const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  const std::string message = StringVPrintf(format, args);
+  va_end(args);
+
+  LogMessage(file, line, FATAL, tag, -1).stream()
+      << "Check failed: " << condition << ": " << message;
+  __builtin_unreachable();
+}
 
 void LogMessage::LogLine(const char* file, unsigned int line,
                          LogSeverity severity, const char* tag,
@@ -273,16 +342,16 @@ void LogMessage::LogLine(const char* file, unsigned int line,
   }
 }
 
-LogSeverity GetMinimumLogSeverity() { return gMinimumLogSeverity; }
+LogSeverity GetMinimumLogSeverity() {
+  return gMinimumLogSeverity.load(std::memory_order_relaxed);
+}
 
 bool ShouldLog(LogSeverity severity, const char*) {
-  return severity >= gMinimumLogSeverity;
+  return severity >= gMinimumLogSeverity.load(std::memory_order_relaxed);
 }
 
 LogSeverity SetMinimumLogSeverity(LogSeverity new_severity) {
-  LogSeverity old_severity = gMinimumLogSeverity;
-  gMinimumLogSeverity = new_severity;
-  return old_severity;
+  return gMinimumLogSeverity.exchange(new_severity, std::memory_order_relaxed);
 }
 
 ScopedLogSeverity::ScopedLogSeverity(LogSeverity new_severity) {

@@ -296,7 +296,7 @@ void PrintMetadataTags(int32_t entries, const uint32_t* pTags) {
 }
 
 void PrintLensFacing(ACameraMetadata_const_entry& lens) {
-  ASSERT(lens.tag == ACAMERA_LENS_FACING, "Wrong tag(%#x) of %s to %s",
+  CHECKF(lens.tag == ACAMERA_LENS_FACING, "Wrong tag(%#x) of %s to %s",
          lens.tag, GetTagStr((acamera_metadata_tag_t)lens.tag), __FUNCTION__);
   LOGI("LensFacing: tag(%#x), type(%d), count(%d), val(%#x)", lens.tag,
        lens.type, lens.count, lens.data.u8[0]);
@@ -310,9 +310,9 @@ void PrintLensFacing(ACameraMetadata_const_entry& lens) {
 void PrintStreamConfigurations(ACameraMetadata_const_entry& val) {
 #define MODE_LABLE "ModeInfo:"
   const char* tagName = GetTagStr(static_cast<acamera_metadata_tag_t>(val.tag));
-  ASSERT(!(val.count & 0x3), "STREAM_CONFIGURATION (%d) should multiple of 4",
+  CHECKF(!(val.count & 0x3), "STREAM_CONFIGURATION (%d) should multiple of 4",
          val.count);
-  ASSERT(val.type == ACAMERA_TYPE_INT32,
+  CHECKF(val.type == ACAMERA_TYPE_INT32,
          "STREAM_CONFIGURATION TYPE(%d) is not ACAMERA_TYPE_INT32(1)",
          val.type);
   LOGI("%s -- %s:", tagName, MODE_LABLE);
@@ -351,7 +351,7 @@ void PrintTagVal(const char* printLabel, ACameraMetadata_const_entry& val) {
              val.data.r[i].denominator);
         break;
       default:
-        ASSERT(false, "Unknown tag value type: %d", val.type);
+        CHECKF(false, "Unknown tag value type: %d", val.type);
     }
   }
 }
@@ -432,7 +432,7 @@ void PrintRequestMetadata(ACaptureRequest* req) {
                val.data.r[i].denominator);
           break;
         default:
-          ASSERT(false, "Unknown tag value type: %d", val.type);
+          CHECKF(false, "Unknown tag value type: %d", val.type);
       }
     }
   }

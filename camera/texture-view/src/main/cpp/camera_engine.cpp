@@ -33,7 +33,7 @@ CameraAppEngine::CameraAppEngine(JNIEnv* env, jint w, jint h)
       camera_(nullptr) {
   memset(&compatibleCameraRes_, 0, sizeof(compatibleCameraRes_));
   camera_ = new NDKCamera();
-  ASSERT(camera_, "Failed to Create CameraObject");
+  CHECKF(camera_, "Failed to Create CameraObject");
   camera_->MatchCaptureSizeRequest(requestWidth_, requestHeight_,
                                    &compatibleCameraRes_);
 }
@@ -73,14 +73,14 @@ const ImageFormat& CameraAppEngine::GetCompatibleCameraRes() const {
 }
 
 int CameraAppEngine::GetCameraSensorOrientation(int32_t requestFacing) {
-  ASSERT(requestFacing == ACAMERA_LENS_FACING_BACK,
+  CHECKF(requestFacing == ACAMERA_LENS_FACING_BACK,
          "Only support rear facing camera");
   int32_t facing = 0, angle = 0;
   if (camera_->GetSensorOrientation(&facing, &angle) ||
       facing == requestFacing) {
     return angle;
   }
-  ASSERT(false, "Failed for GetSensorOrientation()");
+  CHECKF(false, "Failed for GetSensorOrientation()");
   return 0;
 }
 

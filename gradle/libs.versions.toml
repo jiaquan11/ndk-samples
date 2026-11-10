@@ -1,3 +1,4 @@
+# 外部插件和依赖的统一版本目录。
 [versions]
 agp = "8.13.0"
 kotlin = "1.9.0"
@@ -33,7 +34,6 @@ androidx-games-gameactivity = { group = "androidx.games", name = "games-activity
 androidx-junit-gtest = { group = "androidx.test.ext", name = "junit-gtest", version.ref = "androidxJUnitGTest" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 oboe = { group = "com.google.oboe", name = "oboe", version.ref = "oboe" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
@@ -42,8 +42,11 @@ googletest = { group = "com.android.ndk.thirdparty", name = "googletest", versio
 jsoncpp = { group = "com.android.ndk.thirdparty", name = "jsoncpp", version.ref = "jsoncpp" }
 openssl = { group = "com.android.ndk.thirdparty", name = "openssl", version.ref = "openssl" }
 
-# build-logic dependencies
+# build-logic 编译依赖：用于编译时访问 AGP API，不是模块中直接应用的插件声明。
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+
+# Compose 应用依赖。
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -57,7 +60,9 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 
 [plugins]
+# 主构建在根 build.gradle 中通过 apply false 统一声明以下插件版本。
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# Included Build build-logic 使用的 Kotlin/JVM 插件。
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }

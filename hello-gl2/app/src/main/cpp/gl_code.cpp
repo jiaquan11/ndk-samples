@@ -18,16 +18,13 @@
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-#include <android/log.h>
+#define LOG_TAG "libgl2jni"
+#include <base/logging.h>
 #include <base/macros.h>
 #include <jni.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#define LOG_TAG "libgl2jni"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 static void printGLString(const char* name, GLenum s) {
   const char* v = (const char*)glGetString(s);

@@ -1,4 +1,6 @@
 pluginManagement {
+    // build-logic 是一套独立的 Included Build。放在 pluginManagement 中后，
+    // 其中注册的插件 ID 才能在各模块的 plugins {} 中被解析。
     includeBuild("build-logic")
     repositories {
         google {
@@ -12,6 +14,7 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -21,6 +24,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NDK Samples"
+// 与上面的 includeBuild 不同：这里把 base 加入主构建，成为普通 Gradle 子项目 :base。
 include(":base")
 include(":bitmap-plasma:app")
 include(":camera:basic")

@@ -23,7 +23,7 @@
  */
 static CameraEngine* pEngineObj = nullptr;
 CameraEngine* GetAppEngine(void) {
-  ASSERT(pEngineObj, "AppEngine has not initialized");
+  CHECKF(pEngineObj, "AppEngine has not initialized");
   return pEngineObj;
 }
 
@@ -68,7 +68,7 @@ extern "C" void android_main(struct android_app* state) {
   while (!state->destroyRequested) {
     struct android_poll_source* source = nullptr;
     auto result = ALooper_pollOnce(0, NULL, nullptr, (void**)&source);
-    ASSERT(result != ALOOPER_POLL_ERROR, "ALooper_pollOnce returned an error");
+    CHECKF(result != ALOOPER_POLL_ERROR, "ALooper_pollOnce returned an error");
     if (source != NULL) {
       source->process(state, source);
     }
@@ -95,7 +95,7 @@ void CameraEngine::OnAppInitWindow(void) {
   rotation_ = GetDisplayRotation();
 
   CreateCamera();
-  ASSERT(camera_, "CameraCreation Failed");
+  CHECKF(camera_, "CameraCreation Failed");
 
   EnableUI();
 

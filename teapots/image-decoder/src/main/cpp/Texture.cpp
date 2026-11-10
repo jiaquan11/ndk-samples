@@ -22,7 +22,8 @@
 #include <assert.h>
 
 #define MODULE_NAME "Teapot::Texture"
-#include "android_debug.h"
+#define LOG_TAG MODULE_NAME
+#include <base/logging.h>
 
 /**
  * Load2DTextureFromAsset(): Load one RGBA 2d texture from asset into
@@ -36,27 +37,27 @@ static bool Load2DTextureFromAsset(std::string& assetFile, AAssetManager* mgr,
   // Open the asset with the give name from the APK's assets folder.
   AAsset* assetDescriptor =
       AAssetManager_open(mgr, assetFile.c_str(), AASSET_MODE_BUFFER);
-  ASSERT(assetDescriptor, "%s does not exist in %s", assetFile.c_str(),
+  CHECKF(assetDescriptor, "%s does not exist in %s", assetFile.c_str(),
          __FUNCTION__);
 
   // Create an AImageDecoder from the given AAsset
   AImageDecoder* decoder = nullptr;
   int status = AImageDecoder_createFromAAsset(assetDescriptor, &decoder);
-  ASSERT(ANDROID_IMAGE_DECODER_SUCCESS == status,
+  CHECKF(ANDROID_IMAGE_DECODER_SUCCESS == status,
          "Failed to create ImageDecoder for %s", assetFile.c_str());
 
   status = AImageDecoder_setAndroidBitmapFormat(
       decoder, ANDROID_BITMAP_FORMAT_RGBA_8888);
-  ASSERT(ANDROID_IMAGE_DECODER_SUCCESS == status,
+  CHECKF(ANDROID_IMAGE_DECODER_SUCCESS == status,
          "Failed to request 8888 output format for %s", assetFile.c_str());
 
   status = AImageDecoder_setUnpremultipliedRequired(decoder, true);
-  ASSERT(ANDROID_IMAGE_DECODER_SUCCESS == status,
+  CHECKF(ANDROID_IMAGE_DECODER_SUCCESS == status,
          "Failed to bypass pre-multiply alpha for %s", assetFile.c_str());
 
   const AImageDecoderHeaderInfo* headerInfo =
       AImageDecoder_getHeaderInfo(decoder);
-  ASSERT(headerInfo != nullptr, "Failed to get ImageHeaderInfo for %s",
+  CHECKF(headerInfo != nullptr, "Failed to get ImageHeaderInfo for %s",
          assetFile.c_str());
 
   // scRGB/sRGB/SCRGB_LINEAR are okay for this sample
@@ -65,7 +66,7 @@ static bool Load2DTextureFromAsset(std::string& assetFile, AAssetManager* mgr,
   if (dataSpace != ADATASPACE_SCRGB && dataSpace != ADATASPACE_SRGB &&
       dataSpace != ADATASPACE_SCRGB_LINEAR) {
     status = AImageDecoder_setDataSpace(decoder, ADATASPACE_SRGB);
-    ASSERT(ANDROID_IMAGE_DECODER_SUCCESS == status,
+    CHECKF(ANDROID_IMAGE_DECODER_SUCCESS == status,
            "Failed to set SRGB color space %s", assetFile.c_str());
   }
 
@@ -76,7 +77,7 @@ static bool Load2DTextureFromAsset(std::string& assetFile, AAssetManager* mgr,
   // by design, ImageDecoder decode the image into packed format, no padding.
   // Let's make sure there is no padding; otherwise it would be bug, and app
   // need to pack.
-  ASSERT(stride == static_cast<uint32_t>(imgWidth) * 4,
+  CHECKF(stride == static_cast<uint32_t>(imgWidth) * 4,
          "ImageDecoder padded  decoded image");
 
   imgBits.clear();
@@ -84,7 +85,8 @@ static bool Load2DTextureFromAsset(std::string& assetFile, AAssetManager* mgr,
 
   status = AImageDecoder_decodeImage(decoder, imgBits.data(), stride,
                                      imgBits.size());
-  ASSERT(status == ANDROID_IMAGE_DECODER_SUCCESS, "Failed to decode image %s",
+  CHECKF(status == ANDROID_IMAGE_DECODER_SUCCESS,
+         "Failed to decode image %s",
          assetFile.c_str());
 
   glTexImage2D(target, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA,
@@ -165,7 +167,7 @@ Texture* Texture::Create(GLuint type, std::vector<std::string>& texFiles,
 
 void Texture::Delete(Texture* obj) {
   if (obj == nullptr) {
-    ASSERT(false, "NULL pointer to Texture::Delete() function");
+    CHECKF(false, "NULL pointer to Texture::Delete() function");
     return;
   }
 
@@ -175,18 +177,18 @@ void Texture::Delete(Texture* obj) {
     if (d2Instance) {
       delete d2Instance;
     } else {
-      ASSERT(false, "Unknown obj type to %s", __FUNCTION__);
+      CHECKF(false, "Unknown obj type to %s", __FUNCTION__);
     }
   } else if (type == GL_TEXTURE_CUBE_MAP) {
     TextureCubemap* cubemapInstance = dynamic_cast<TextureCubemap*>(obj);
     if (cubemapInstance) {
       delete cubemapInstance;
     } else {
-      ASSERT(false, "Unknown obj type to %s", __FUNCTION__);
+      CHECKF(false, "Unknown obj type to %s", __FUNCTION__);
     }
   } else {
     LOGE("Supported Texture Types: %s", supportedTextureTypes.c_str());
-    ASSERT(false, "Unknow texture type %x to delete", type);
+    CHECKF(false, "Unknow texture type %x to delete", type);
   }
 }
 

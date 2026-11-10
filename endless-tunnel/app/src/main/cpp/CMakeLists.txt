@@ -19,6 +19,7 @@ project(EndlessTunnel LANGUAGES C CXX)
 
 include(AppLibrary)
 include(AndroidNdkModules)
+find_package(base REQUIRED CONFIG)
 
 android_ndk_import_module_native_app_glue()
 
@@ -76,9 +77,9 @@ target_link_libraries(game
     android
     $<LINK_LIBRARY:WHOLE_ARCHIVE,native_app_glue>
     atomic
+    base::base
     EGL
     GLESv2
     glm
-    log
     OpenSLES
 )

@@ -1,6 +1,6 @@
 plugins {
-    id "ndksamples.android.application"
-    id 'ndksamples.android.kotlin'
+    id("ndksamples.android.application")
+    id("ndksamples.android.kotlin")
 }
 
 android {

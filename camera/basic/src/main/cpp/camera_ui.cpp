@@ -26,7 +26,7 @@
  * @return current rotation angle
  */
 int CameraEngine::GetDisplayRotation() {
-  ASSERT(app_, "Application is not initialized");
+  CHECKF(app_, "Application is not initialized");
 
   JNIEnv* env;
   ANativeActivity* activity = app_->activity;
@@ -65,7 +65,7 @@ void CameraEngine::EnableUI(void) {
   jmethodID methodID = jni->GetMethodID(clazz, "EnableUI", "([J)V");
   jlongArray initData = jni->NewLongArray(kInitDataLen);
 
-  ASSERT(initData && methodID, "JavaUI interface Object failed(%p, %p)",
+  CHECKF(initData && methodID, "JavaUI interface Object failed(%p, %p)",
          methodID, initData);
 
   if (!camera_->GetExposureRange(&range[0], &range[1], &range[2])) {
@@ -117,7 +117,7 @@ void CameraEngine::OnCameraPermission(jboolean granted) {
   cameraGranted_ = (granted != JNI_FALSE);
 
   // TODO: Fail gracefully.
-  ASSERT(cameraGranted_, "required app permissions were not granted");
+  CHECKF(cameraGranted_, "required app permissions were not granted");
   OnAppInitWindow();
 }
 

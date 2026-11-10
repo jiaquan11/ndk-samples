@@ -15,8 +15,8 @@
  */
 
 plugins {
-    id "ndksamples.android.application"
-    id "ndksamples.android.kotlin"
+    id("ndksamples.android.application")
+    id("ndksamples.android.kotlin")
 }
 
 android {
@@ -49,6 +49,8 @@ android {
     }
 
     buildFeatures {
+        // 同时消费本地 :base AAR 与 Maven GameActivity AAR 中的 Prefab Package。
+        // Gradle 解析两类 AAR，AGP 再把其中的 Native API 暴露给 CMake。
         prefab true
         shaders true
     }
@@ -56,5 +58,7 @@ android {
 
 dependencies {
     implementation libs.appcompat
+    implementation project(":base")
+    // 提供 GameActivity 的 Java/Kotlin 与 Native API；CMake 端仍需 find_package。
     implementation libs.androidx.games.gameactivity
 }

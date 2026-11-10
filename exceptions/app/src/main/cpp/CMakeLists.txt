@@ -15,5 +15,4 @@ target_link_libraries(
     exceptions
     PRIVATE
     base::base
-    log
 )

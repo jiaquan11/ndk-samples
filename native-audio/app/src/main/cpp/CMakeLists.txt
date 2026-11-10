@@ -13,7 +13,6 @@ target_link_libraries(native-audio-jni
     PRIVATE
     base::base
     android
-    log
     OpenSLES
 )
 

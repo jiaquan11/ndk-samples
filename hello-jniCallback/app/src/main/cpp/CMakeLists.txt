@@ -10,5 +10,4 @@ target_link_libraries(hello-jnicallback
     PRIVATE
     base::base
     android
-    log
 )

@@ -48,7 +48,9 @@ static void SendTheReceivedData(uint8_t* data, int numBytes) {
   JNIEnv* env;
   theJvm->AttachCurrentThread(&env, NULL);
   if (env == NULL) {
+#if !defined(NDEBUG)
     LOGE("Error retrieving JNI Env");
+#endif
   }
 
   // Allocate the Java array and fill with received data
@@ -111,7 +113,9 @@ static void* readThreadRoutine(void* context) {
         &numBytesReceived, &timestamp);
 
     if (numMessagesReceived < 0) {
+#if !defined(NDEBUG)
       LOGW("Failure receiving MIDI data %zd", numMessagesReceived);
+#endif
       // Exit the thread
       sReading = false;
     }

@@ -16,6 +16,7 @@
 
 #include "benchmark.h"
 
+#define LOG_TAG "Vectorization"
 #include <base/logging.h>
 #include <stdint.h>
 
@@ -81,7 +82,7 @@ BenchmarkMatrixMultiplication(Backend backend) {
 
   switch (backend) {
     case Backend::kAutoVectorization:
-      LOG(INFO) << "Benchmarking auto-vectorization";
+      LOGI("Benchmarking auto-vectorization");
       return Benchmark(position, translation, [](Vec4<> p, Mat4<> t) {
         return MultiplyWithAutoVectorization(t, p);
       });
@@ -92,21 +93,21 @@ BenchmarkMatrixMultiplication(Backend backend) {
       // The libc++ in NDK r31 has only a skeleton implementation of std::simd.
       // Some things we can do without, but it doesn't actually have operator*,
       // which is sort of essential :)
-      LOG(INFO) << "Benchmarking std::simd";
+      LOGI("Benchmarking std::simd");
       return std::unexpected{BenchmarkError::kNotImplemented};
     case Backend::kClangVector:
-      LOG(INFO) << "Benchmarking Clang vectors";
+      LOGI("Benchmarking Clang vectors");
       return Benchmark(position, translation, [](Vec4<> p, Mat4<> t) {
         return MultiplyWithClangVectors(t, p);
       });
     case Backend::kClangMatrix:
-      LOG(INFO) << "Benchmarking Clang matrices";
+      LOGI("Benchmarking Clang matrices");
       return Benchmark(position, translation, [](Vec4<> p, Mat4<> t) {
         // This is the default implementation since it's the fastest.
         return t * p;
       });
     case Backend::kOpenMp:
-      LOG(INFO) << "Benchmarking OpenMP SIMD";
+      LOGI("Benchmarking OpenMP SIMD");
       return Benchmark(position, translation, [](Vec4<> p, Mat4<> t) {
         return MultiplyWithOpenMP(t, p);
       });

@@ -17,17 +17,15 @@
 // OpenGL ES 2.0 code
 #include <GLES2/gl2.h>
 #include <android/asset_manager_jni.h>
-#include <android/log.h>
 #include <android/sensor.h>
+#define LOG_TAG "accelerometergraph"
+#include <base/logging.h>
 #include <dlfcn.h>
 #include <jni.h>
 
 #include <cassert>
 #include <cstdint>
 #include <string>
-
-#define LOG_TAG "accelerometergraph"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
 const int LOOPER_ID_USER = 3;
 const int SENSOR_HISTORY_LENGTH = 100;

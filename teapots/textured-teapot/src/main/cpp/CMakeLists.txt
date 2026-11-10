@@ -18,6 +18,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project(TexturedTeapotNativeActivity LANGUAGES C CXX)
 
 include(AppLibrary)
+find_package(base CONFIG REQUIRED)
 
 get_filename_component(commonDir ${CMAKE_CURRENT_SOURCE_DIR}/../../../../common ABSOLUTE)
 if((NOT EXISTS ${commonDir}/stb) OR

@@ -18,6 +18,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project(MoreTeapotsNativeActivity LANGUAGES C CXX)
 
 include(AppLibrary)
+find_package(base CONFIG REQUIRED)
 
 # build the ndk-helper library
 get_filename_component(commonDir ${CMAKE_CURRENT_SOURCE_DIR}/../../../../common ABSOLUTE)
@@ -32,13 +33,6 @@ add_app_library(${PROJECT_NAME}
     MoreTeapotsNativeActivity.cpp
     MoreTeapotsRenderer.cpp
 )
-set_target_properties(${PROJECT_NAME}
-    PROPERTIES
-    CXX_STANDARD 11
-    CXX_STANDARD_REQUIRED YES
-    CXX_EXTENSIONS NO
-)
-
 # Export ANativeActivity_onCreate(),
 # Refer to: https://github.com/android-ndk/ndk/issues/381.
 set_target_properties(${PROJECT_NAME}

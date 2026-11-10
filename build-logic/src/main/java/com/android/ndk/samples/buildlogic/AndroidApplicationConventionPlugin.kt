@@ -14,18 +14,18 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             }
 
             extensions.configure<ApplicationExtension> {
-                compileSdk = Versions.COMPILE_SDK
-                ndkVersion = Versions.NDK
+                compileSdk = AndroidBuildConfig.COMPILE_SDK
+                ndkVersion = AndroidBuildConfig.NDK
 
                 externalNativeBuild {
                     cmake {
-                        version = Versions.CMAKE
+                        version = AndroidBuildConfig.CMAKE
                     }
                 }
 
                 defaultConfig {
-                    minSdk = Versions.MIN_SDK
-                    targetSdk = Versions.TARGET_SDK
+                    minSdk = AndroidBuildConfig.MIN_SDK
+                    targetSdk = AndroidBuildConfig.TARGET_SDK
 
                     externalNativeBuild {
                         cmake {
@@ -51,8 +51,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     }
                 }
                 compileOptions {
-                    sourceCompatibility = Versions.JAVA
-                    targetCompatibility = Versions.JAVA
+                    sourceCompatibility = AndroidBuildConfig.JAVA
+                    targetCompatibility = AndroidBuildConfig.JAVA
                 }
 
                 // Studio will not automatically pass logcat through ndk-stack, so we need to avoid

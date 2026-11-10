@@ -93,7 +93,7 @@ bool RendererES2::init() {
   glBindBuffer(GL_ARRAY_BUFFER, mVB);
   glBufferData(GL_ARRAY_BUFFER, sizeof(QUAD), &QUAD[0], GL_STATIC_DRAW);
 
-  ALOGV("Using OpenGL ES 2.0 renderer");
+  LOGV("Using OpenGL ES 2.0 renderer");
   return true;
 }
 

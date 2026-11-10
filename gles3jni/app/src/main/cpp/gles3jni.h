@@ -18,19 +18,9 @@
 #define GLES3JNI_H 1
 
 #include <GLES3/gl32.h>
-#include <android/log.h>
-#include <math.h>
-
-#define DEBUG 1
-
 #define LOG_TAG "GLES3JNI"
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-#if DEBUG
-#define ALOGV(...) \
-  __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
-#else
-#define ALOGV(...)
-#endif
+#include <base/logging.h>
+#include <math.h>
 
 // ----------------------------------------------------------------------------
 // Types, functions, and data used by both ES2 and ES3 renderers.

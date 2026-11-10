@@ -1,5 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
+    // 统一声明官方插件及其版本，但不把它们应用到根项目。
+    // build-logic 中的约定插件会在具体模块上按需应用这些官方插件。
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.jetbrainsKotlinAndroid) apply false

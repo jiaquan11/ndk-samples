@@ -40,9 +40,9 @@ target_include_directories(NdkHelper
 target_link_libraries(NdkHelper
     PUBLIC
     native_app_glue
+    base::base
     GLESv2
     EGL
-    log
     android
     atomic
 )

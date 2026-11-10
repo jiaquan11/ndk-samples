@@ -10,6 +10,5 @@ target_link_libraries(plasma
     base::base
     android
     jnigraphics
-    log
     m
 )

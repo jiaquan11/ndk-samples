@@ -80,6 +80,7 @@ void JNIHelper::Init(ANativeActivity* activity, const char* helper_class_name) {
                                                        midGetPackageName);
   const char* appname = env->GetStringUTFChars(packageName, NULL);
   helper.app_name_ = std::string(appname);
+  ndksamples::base::SetDefaultTag(helper.app_name_);
 
   jclass cls = helper.RetrieveClass(env, helper_class_name);
   helper.jni_helper_java_class_ = (jclass)env->NewGlobalRef(cls);

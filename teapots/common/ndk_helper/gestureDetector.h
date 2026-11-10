@@ -20,7 +20,6 @@
 #ifndef GESTUREDETECTOR_H_
 #define GESTUREDETECTOR_H_
 
-#include <android/log.h>
 #include <android/native_window_jni.h>
 #include <android/sensor.h>
 #include <android_native_app_glue.h>

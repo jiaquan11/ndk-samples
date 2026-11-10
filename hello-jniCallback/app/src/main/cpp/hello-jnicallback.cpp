@@ -14,22 +14,14 @@
  * limitations under the License.
  *
  */
-#include <android/log.h>
 #include <assert.h>
+#define LOG_TAG "hello-jniCallback"
+#include <base/logging.h>
 #include <base/macros.h>
 #include <inttypes.h>
 #include <jni.h>
 #include <pthread.h>
 #include <string.h>
-
-// Android log function wrappers
-static const char* kTAG = "hello-jniCallback";
-#define LOGI(...) \
-  ((void)__android_log_print(ANDROID_LOG_INFO, kTAG, __VA_ARGS__))
-#define LOGW(...) \
-  ((void)__android_log_print(ANDROID_LOG_WARN, kTAG, __VA_ARGS__))
-#define LOGE(...) \
-  ((void)__android_log_print(ANDROID_LOG_ERROR, kTAG, __VA_ARGS__))
 
 // processing callback to handler class
 typedef struct tick_context {

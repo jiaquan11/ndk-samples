@@ -62,7 +62,7 @@ void CameraEngine::CreateCamera(void) {
   rotation_ = displayRotation;
 
   camera_ = new NDKCamera();
-  ASSERT(camera_, "Failed to Create CameraObject");
+  CHECKF(camera_, "Failed to Create CameraObject");
 
   int32_t facing = 0, angle = 0, imageRotation = 0;
   if (camera_->GetSensorOrientation(&facing, &angle)) {
@@ -78,7 +78,7 @@ void CameraEngine::CreateCamera(void) {
   ImageFormat view{0, 0, 0}, capture{0, 0, 0};
   camera_->MatchCaptureSizeRequest(app_->window, &view, &capture);
 
-  ASSERT(view.width && view.height, "Could not find supportable resolution");
+  CHECKF(view.width && view.height, "Could not find supportable resolution");
 
   // Request the necessary nativeWindow to OS
   bool portraitNativeWindow =

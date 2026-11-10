@@ -1,5 +1,5 @@
 plugins {
-    id "ndksamples.android.application"
+    id("ndksamples.android.application")
 }
 
 android {

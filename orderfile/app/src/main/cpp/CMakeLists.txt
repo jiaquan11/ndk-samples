@@ -14,7 +14,7 @@ set(GENERATE_PROFILES ON)
 #set(USE_PROFILE "${CMAKE_SOURCE_DIR}/demo.orderfile")
 
 add_app_library(orderfiledemo SHARED orderfile.cpp)
-target_link_libraries(orderfiledemo PRIVATE base::base log)
+target_link_libraries(orderfiledemo PRIVATE base::base)
 
 if(GENERATE_PROFILES)
     # Generating profiles requires any optimization flag aside from -O0.

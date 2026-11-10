@@ -8,6 +8,9 @@ project("unittest")
 
 include(AppLibrary)
 
+# 三个 Package 来自两类 Gradle 依赖：base 来自本地 Project，
+# googletest 和 junit-gtest 来自外部 AAR；进入 CMake 后统一表现为
+# find_package 导入的 CMake Target。
 find_package(base REQUIRED CONFIG)
 find_package(googletest REQUIRED CONFIG)
 find_package(junit-gtest REQUIRED CONFIG)
@@ -25,7 +28,6 @@ target_link_libraries( # Specifies the target library.
     unittest
     PRIVATE
     base::base
-    log
 )
 
 add_app_library(app_tests NO_VERSION_SCRIPT SHARED adder_test.cpp)

@@ -69,10 +69,14 @@
 //
 //   CHECK(must_be_true);
 //   CHECK_EQ(a, b) << z_is_interesting_too;
+//
+// The public logging interface requires C++17 or newer.
 
 #include <base/errno_restorer.h>
 #include <base/macros.h>
 
+#include <cerrno>
+#include <cstdarg>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -117,7 +121,42 @@ using AbortFunction = std::function<void(const char* /*abort_message*/)>;
 
 void DefaultAborter(const char* abort_message);
 
-void SetDefaultTag(const std::string& tag);
+void SetDefaultTag(std::string_view tag);
+
+#if defined(__clang__) || defined(__GNUC__)
+#define NDKSAMPLES_PRINTF_FORMAT(format_index, first_argument) \
+  __attribute__((format(printf, format_index, first_argument)))
+#else
+#define NDKSAMPLES_PRINTF_FORMAT(format_index, first_argument)
+#endif
+
+// printf-style logging entry points. Callers should normally use LOGV/LOGD/
+// LOGI/LOGW/LOGE/LOGF below so file, line, and the translation unit's LOG_TAG
+// are captured automatically.
+void LogVPrint(LogSeverity severity, const char* tag, const char* file,
+               unsigned int line, const char* format, va_list args)
+    NDKSAMPLES_PRINTF_FORMAT(5, 0);
+void LogPrint(LogSeverity severity, const char* tag, const char* file,
+              unsigned int line, const char* format, ...)
+    NDKSAMPLES_PRINTF_FORMAT(5, 6);
+
+// errno-aware counterparts used by PLOGx macros. The error value is passed
+// explicitly so argument evaluation cannot overwrite errno before it is saved.
+void LogVPrintErrno(LogSeverity severity, const char* tag, const char* file,
+                    unsigned int line, int error, const char* format,
+                    va_list args) NDKSAMPLES_PRINTF_FORMAT(6, 0);
+void LogPrintErrno(LogSeverity severity, const char* tag, const char* file,
+                   unsigned int line, int error, const char* format, ...)
+    NDKSAMPLES_PRINTF_FORMAT(6, 7);
+
+// Emits a formatted FATAL message and terminates through the configured
+// AbortFunction. Use CHECKF rather than calling this function directly.
+[[noreturn]] void CheckFailed(const char* condition, const char* tag,
+                              const char* file, unsigned int line,
+                              const char* format, ...)
+    NDKSAMPLES_PRINTF_FORMAT(5, 6);
+
+#undef NDKSAMPLES_PRINTF_FORMAT
 
 // The LogdLogger sends chunks of up to ~4000 bytes at a time to logd.  It does
 // not prevent other threads from writing to logd between sending each chunk, so
@@ -443,6 +482,101 @@ LogSeverity SetMinimumLogSeverity(LogSeverity new_severity);
 
 // Return whether or not a log message with the associated tag should be logged.
 bool ShouldLog(LogSeverity severity, const char* tag);
+
+// Unified printf-style public logging interface.
+//
+// Define LOG_TAG before including this header to use a fixed tag for the
+// translation unit. If it is omitted, the process name/default tag is used.
+// LOGF emits ANDROID_LOG_FATAL without terminating; CHECKF is the terminating
+// assertion API.
+#define NDKSAMPLES_LOG_PRINT(severity_value, tag_value, ...)                 \
+  do {                                                                       \
+    [[maybe_unused]] ::ndksamples::base::ErrnoRestorer                       \
+        ndksamples_errno_restorer_;                                          \
+    const auto ndksamples_log_severity_ = (severity_value);                  \
+    const char* const ndksamples_log_tag_ = (tag_value);                     \
+    if (::ndksamples::base::ShouldLog(ndksamples_log_severity_,              \
+                                      ndksamples_log_tag_)) {                 \
+      ::ndksamples::base::LogPrint(ndksamples_log_severity_,                 \
+                                   ndksamples_log_tag_, __FILE__, __LINE__,   \
+                                   __VA_ARGS__);                              \
+    }                                                                        \
+  } while (false)
+
+#define NDKSAMPLES_PLOG_PRINT(severity_value, tag_value, ...)                \
+  do {                                                                       \
+    [[maybe_unused]] ::ndksamples::base::ErrnoRestorer                       \
+        ndksamples_errno_restorer_;                                          \
+    const int ndksamples_log_error_ = errno;                                 \
+    const auto ndksamples_log_severity_ = (severity_value);                  \
+    const char* const ndksamples_log_tag_ = (tag_value);                     \
+    if (::ndksamples::base::ShouldLog(ndksamples_log_severity_,              \
+                                      ndksamples_log_tag_)) {                 \
+      ::ndksamples::base::LogPrintErrno(                                     \
+          ndksamples_log_severity_, ndksamples_log_tag_, __FILE__, __LINE__, \
+          ndksamples_log_error_, __VA_ARGS__);                               \
+    }                                                                        \
+  } while (false)
+
+#define LOGV(...)                                                            \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::VERBOSE, _LOG_TAG_INTERNAL,       \
+                       __VA_ARGS__)
+#define LOGD(...)                                                            \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::DEBUG, _LOG_TAG_INTERNAL,         \
+                       __VA_ARGS__)
+#define LOGI(...)                                                            \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::INFO, _LOG_TAG_INTERNAL,          \
+                       __VA_ARGS__)
+#define LOGW(...)                                                            \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::WARNING, _LOG_TAG_INTERNAL,       \
+                       __VA_ARGS__)
+#define LOGE(...)                                                            \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::ERROR, _LOG_TAG_INTERNAL,         \
+                       __VA_ARGS__)
+#define LOGF(...)                                                            \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::FATAL_WITHOUT_ABORT,              \
+                       _LOG_TAG_INTERNAL, __VA_ARGS__)
+
+#define LOGV_TAG(tag, ...)                                                   \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::VERBOSE, tag, __VA_ARGS__)
+#define LOGD_TAG(tag, ...)                                                   \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::DEBUG, tag, __VA_ARGS__)
+#define LOGI_TAG(tag, ...)                                                   \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::INFO, tag, __VA_ARGS__)
+#define LOGW_TAG(tag, ...)                                                   \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::WARNING, tag, __VA_ARGS__)
+#define LOGE_TAG(tag, ...)                                                   \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::ERROR, tag, __VA_ARGS__)
+#define LOGF_TAG(tag, ...)                                                   \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::FATAL_WITHOUT_ABORT, tag,         \
+                       __VA_ARGS__)
+
+#define PLOGV(...)                                                           \
+  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::VERBOSE, _LOG_TAG_INTERNAL,      \
+                        __VA_ARGS__)
+#define PLOGD(...)                                                           \
+  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::DEBUG, _LOG_TAG_INTERNAL,        \
+                        __VA_ARGS__)
+#define PLOGI(...)                                                           \
+  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::INFO, _LOG_TAG_INTERNAL,         \
+                        __VA_ARGS__)
+#define PLOGW(...)                                                           \
+  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::WARNING, _LOG_TAG_INTERNAL,      \
+                        __VA_ARGS__)
+#define PLOGE(...)                                                           \
+  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::ERROR, _LOG_TAG_INTERNAL,        \
+                        __VA_ARGS__)
+#define PLOGF(...)                                                           \
+  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::FATAL_WITHOUT_ABORT,             \
+                        _LOG_TAG_INTERNAL, __VA_ARGS__)
+
+#define CHECKF(condition, ...)                                               \
+  do {                                                                       \
+    if (UNLIKELY(!(condition))) {                                            \
+      ::ndksamples::base::CheckFailed(#condition, _LOG_TAG_INTERNAL,         \
+                                      __FILE__, __LINE__, __VA_ARGS__);       \
+    }                                                                        \
+  } while (false)
 
 // Allows to temporarily change the minimum severity level for logging.
 class ScopedLogSeverity {

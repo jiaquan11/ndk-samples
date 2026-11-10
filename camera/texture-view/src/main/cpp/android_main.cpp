@@ -65,7 +65,7 @@ void DeleteCamera(JNIEnv*, jobject, jlong ndkCameraObj) {
     return;
   }
   CameraAppEngine* pApp = reinterpret_cast<CameraAppEngine*>(ndkCameraObj);
-  ASSERT(pApp == pEngineObj, "NdkCamera Obj mismatch");
+  CHECKF(pApp == pEngineObj, "NdkCamera Obj mismatch");
 
   delete pApp;
 
@@ -106,7 +106,7 @@ jobject GetMinimumCompatiblePreviewSize(JNIEnv* env, jobject,
  */
 void OnPreviewSurfaceCreated(JNIEnv*, jobject, jlong ndkCameraObj,
                              jobject surface) {
-  ASSERT(ndkCameraObj && (jlong)pEngineObj == ndkCameraObj,
+  CHECKF(ndkCameraObj && (jlong)pEngineObj == ndkCameraObj,
          "NativeObject should not be null Pointer");
   CameraAppEngine* pApp = reinterpret_cast<CameraAppEngine*>(ndkCameraObj);
   pApp->CreateCameraSession(surface);
@@ -122,7 +122,7 @@ void OnPreviewSurfaceCreated(JNIEnv*, jobject, jlong ndkCameraObj,
 void OnPreviewSurfaceDestroyed(JNIEnv* env, jobject, jlong ndkCameraObj,
                                jobject surface) {
   CameraAppEngine* pApp = reinterpret_cast<CameraAppEngine*>(ndkCameraObj);
-  ASSERT(ndkCameraObj && pEngineObj == pApp,
+  CHECKF(ndkCameraObj && pEngineObj == pApp,
          "NativeObject should not be null Pointer");
   jclass cls = env->FindClass("android/view/Surface");
   jmethodID toString =
@@ -136,7 +136,7 @@ void OnPreviewSurfaceDestroyed(JNIEnv* env, jobject, jlong ndkCameraObj,
       env->CallObjectMethod(pApp->GetSurfaceObject(), toString));
   const char* appObjName = env->GetStringUTFChars(appObjStr, nullptr);
 
-  ASSERT(!strcmp(destroyObjName, appObjName), "object Name MisMatch");
+  CHECKF(!strcmp(destroyObjName, appObjName), "object Name MisMatch");
 
   env->ReleaseStringUTFChars(destroyObjStr, destroyObjName);
   env->ReleaseStringUTFChars(appObjStr, appObjName);

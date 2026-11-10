@@ -13,7 +13,6 @@ target_link_libraries(native-codec-jni
     PRIVATE
     base::base
     android
-    log
     mediandk
     OpenMAXAL
 )

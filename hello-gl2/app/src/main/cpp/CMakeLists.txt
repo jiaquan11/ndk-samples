@@ -10,7 +10,6 @@ target_link_libraries(gl2jni
     PRIVATE
     base::base
     android
-    log
     EGL
     GLESv2
 )

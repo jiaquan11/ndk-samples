@@ -18,7 +18,6 @@
 // Include files
 //--------------------------------------------------------------------------------
 #include <EGL/egl.h>
-#include <android/log.h>
 #include <android_native_app_glue.h>
 #include <base/macros.h>
 #include <dlfcn.h>

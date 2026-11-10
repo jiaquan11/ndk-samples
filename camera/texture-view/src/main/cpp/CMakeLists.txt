@@ -34,7 +34,6 @@ target_link_libraries(camera_textureview
     camera-utils::camera-utils
     dl
     android
-    log
     m
     camera2ndk
 )

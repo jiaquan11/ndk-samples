@@ -18,6 +18,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project(ImageDecoderNativeActivity LANGUAGES C CXX)
 
 include(AppLibrary)
+find_package(base CONFIG REQUIRED)
 
 get_filename_component(commonDir ${CMAKE_CURRENT_SOURCE_DIR}/../../../../common ABSOLUTE)
 
@@ -33,12 +34,6 @@ add_app_library(${PROJECT_NAME}
     TeapotRenderer.cpp
     ImageDecoderRender.cpp
     Texture.cpp
-)
-set_target_properties(${PROJECT_NAME}
-    PROPERTIES
-    CXX_STANDARD 11
-    CXX_STANDARD_REQUIRED YES
-    CXX_EXTENSIONS NO
 )
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${commonDir}

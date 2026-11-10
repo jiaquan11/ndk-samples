@@ -16,6 +16,5 @@ target_link_libraries(gles3jni
     GLESv3
     android
     EGL
-    log
     m
 )

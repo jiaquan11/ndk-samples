@@ -1,5 +1,5 @@
 plugins {
-    id "ndksamples.android.application"
+    id("ndksamples.android.application")
 }
 
 // Caution: If you add any Java or Kotlin code to this project, or if you add
@@ -26,4 +26,12 @@ android {
             path 'src/main/cpp/CMakeLists.txt'
         }
     }
+
+    buildFeatures {
+        prefab true
+    }
+}
+
+dependencies {
+    implementation project(":base")
 }

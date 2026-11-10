@@ -1,6 +1,6 @@
 plugins {
-    id "ndksamples.android.application"
-    id "ndksamples.android.kotlin"
+    id("ndksamples.android.application")
+    id("ndksamples.android.kotlin")
 }
 
 android {
@@ -23,11 +23,15 @@ android {
     }
 
     buildFeatures {
+        // Prefab 消费端开关：让 AGP 将 Gradle 依赖提供的 Native Package
+        // 暴露给 CMake。还必须声明依赖，并在 CMake 中 find_package/link。
         prefab true
     }
 }
 
 dependencies {
+    // 建立 Gradle 层的本地项目与变体依赖；它不会自动让 CMake 链接 base。
+    // Native 包的发现和最终链接由 CMakeLists.txt 完成。
     implementation project(":base")
     implementation libs.appcompat
     implementation libs.androidx.constraintlayout

@@ -39,11 +39,8 @@
 #include "media/NdkMediaCodec.h"
 #include "media/NdkMediaExtractor.h"
 
-// for __android_log_print(ANDROID_LOG_INFO, "YourApp", "formatted message");
-#include <android/log.h>
-#define TAG "NativeCodec"
-#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+#define LOG_TAG "NativeCodec"
+#include <base/logging.h>
 
 // for native window JNI
 #include <android/asset_manager.h>

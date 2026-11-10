@@ -24,7 +24,8 @@
 #include "AssetUtil.h"
 
 #define MODULE_NAME "Teapot::Texture"
-#include "android_debug.h"
+#define LOG_TAG MODULE_NAME
+#include <base/logging.h>
 
 /**
  * Interface implementations

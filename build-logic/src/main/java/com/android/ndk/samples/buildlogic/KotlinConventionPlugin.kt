@@ -18,7 +18,7 @@ class KotlinConventionPlugin : Plugin<Project> {
             extensions.configure<ApplicationExtension> {
                 tasks.withType<KotlinCompile>().configureEach {
                     kotlinOptions {
-                        jvmTarget = Versions.JAVA.toString()
+                        jvmTarget = AndroidBuildConfig.JAVA.toString()
                     }
                 }
             }

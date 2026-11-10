@@ -48,11 +48,11 @@ NDKCamera::NDKCamera()
   memset(requests_.data(), 0, requests_.size() * sizeof(requests_[0]));
   cameras_.clear();
   cameraMgr_ = ACameraManager_create();
-  ASSERT(cameraMgr_, "Failed to create cameraManager");
+  CHECKF(cameraMgr_, "Failed to create cameraManager");
 
   // Pick up a back-facing camera to preview
   EnumerateCamera();
-  ASSERT(activeCameraId_.size(), "Unknown ActiveCameraIdx");
+  CHECKF(activeCameraId_.size(), "Unknown ActiveCameraIdx");
 
   // Create back facing camera device
   CALL_MGR(openCamera(cameraMgr_, activeCameraId_.c_str(), GetDeviceListener(),
@@ -359,7 +359,7 @@ void NDKCamera::EnumerateCamera() {
     ACameraMetadata_free(metadataObj);
   }
 
-  ASSERT(cameras_.size(), "No Camera Available on the device");
+  CHECKF(cameras_.size(), "No Camera Available on the device");
   if (activeCameraId_.length() == 0) {
     // if no back facing camera found, pick up the first one to use...
     activeCameraId_ = cameras_.begin()->second.id_;
@@ -443,7 +443,7 @@ void NDKCamera::UpdateCameraRequestParameter(int32_t code, int64_t val) {
           setEntry_i32(request, ACAMERA_SENSOR_SENSITIVITY, 1, &sensitivity_));
       break;
     default:
-      ASSERT(false, "==ERROR==: error code for CameraParameterChange: %d",
+      CHECKF(false, "==ERROR==: error code for CameraParameterChange: %d",
              code);
       return;
   }

@@ -26,7 +26,7 @@
 #define CALL_CAMERA(func)                                             \
   {                                                                   \
     camera_status_t status = func;                                    \
-    ASSERT(status == ACAMERA_OK, "%s call failed with code: %#x, %s", \
+    CHECKF(status == ACAMERA_OK, "%s call failed with code: %#x, %s", \
            __FUNCTION__, status, GetErrorStr(status));                \
   }
 #define CALL_MGR(func) CALL_CAMERA(ACameraManager_##func)

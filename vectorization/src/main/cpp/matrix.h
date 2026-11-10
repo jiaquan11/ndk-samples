@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <base/logging.h>
-
 #include <array>
 #include <cstdint>
 #include <iostream>

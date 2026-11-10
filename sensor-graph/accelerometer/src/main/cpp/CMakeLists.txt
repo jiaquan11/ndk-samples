@@ -11,5 +11,4 @@ target_link_libraries(accelerometergraph
     base::base
     android
     GLESv2
-    log
 )

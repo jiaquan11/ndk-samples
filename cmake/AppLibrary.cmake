@@ -6,6 +6,11 @@ function(add_app_library name)
     cmake_parse_arguments(PARSE_ARGV 1 arg "NO_VERSION_SCRIPT" "" "")
     add_library(${name} ${arg_UNPARSED_ARGUMENTS})
 
+    # C++17 is the minimum Native API baseline for the sample targets. Public
+    # headers such as base/logging.h expose C++17 library types, so keep this a
+    # usage requirement rather than relying on the NDK compiler's default.
+    target_compile_features(${name} PUBLIC cxx_std_17)
+
     target_compile_options(${name}
         PRIVATE
         -Wall

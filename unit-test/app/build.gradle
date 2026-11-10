@@ -1,6 +1,6 @@
 plugins {
-    id "ndksamples.android.application"
-    id "ndksamples.android.kotlin"
+    id("ndksamples.android.application")
+    id("ndksamples.android.kotlin")
 }
 
 android {
@@ -28,6 +28,8 @@ android {
 
     buildFeatures {
         viewBinding true
+        // 同一消费模块可以同时使用本地 Prefab Package（:base）和
+        // Maven AAR 提供的 Package（googletest、junit-gtest）。
         prefab true
     }
 
@@ -47,10 +49,12 @@ android {
 }
 
 dependencies {
+    // 本地 Project 依赖，为 CMake 提供 base Package 的来源。
     implementation project(":base")
     implementation libs.appcompat
     implementation libs.material
     implementation libs.androidx.constraintlayout
+    // 外部 AAR 依赖；启用 Prefab 后，它们的 Native Package 可被 CMake 发现。
     implementation libs.androidx.junit.gtest
     implementation libs.googletest
     testImplementation libs.junit

@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 4.1.0)
 project(NativeActivity LANGUAGES C CXX)
 
 include(AppLibrary)
+find_package(base REQUIRED CONFIG)
 
 # This includes the AndroidNdkModules.cmake file, which is shipped with the
 # NDK's CMake distribution. Including this file defines
@@ -18,6 +19,7 @@ add_app_library(native-activity SHARED main.cpp)
 # library which contains the main app code) includes native_app_glue in the app.
 target_link_libraries(native-activity
     android
+    base::base
     # We have to use $<LINK_LIBRARY:WHOLE_ARCHIVE,native_app_glue> rather than
     # the simpler native_app_glue spelling to instruct the linker that the
     # entire native_app_glue static library should be included in
@@ -30,7 +32,6 @@ target_link_libraries(native-activity
     # ANativeActivity_onCreate function, don't come from us, but instead come
     # from ANativeActivity, which the linker cannot detect.
     $<LINK_LIBRARY:WHOLE_ARCHIVE,native_app_glue>
-    log
 )
 
 if(ANDROID_ABI STREQUAL riscv64)

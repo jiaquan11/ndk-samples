@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project(CameraCommon LANGUAGES CXX)
 
 include(AppLibrary)
+find_package(base REQUIRED CONFIG)
 
 add_app_library(camera-utils
     STATIC
@@ -9,4 +10,4 @@ add_app_library(camera-utils
 )
 
 target_include_directories(camera-utils PUBLIC include)
-target_link_libraries(camera-utils PUBLIC log)
+target_link_libraries(camera-utils PUBLIC base::base)

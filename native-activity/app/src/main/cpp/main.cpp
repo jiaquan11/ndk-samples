@@ -3,10 +3,11 @@
 
 #include <android/choreographer.h>
 #include <android/hardware_buffer.h>
-#include <android/log.h>
 #include <android/native_window.h>
-#include <android/set_abort_message.h>
 #include <android_native_app_glue.h>
+
+#define LOG_TAG "native-activity"
+#include <base/logging.h>
 
 #include <chrono>
 #include <cstdlib>
@@ -14,38 +15,10 @@
 
 using namespace std::literals::chrono_literals;
 
-#define LOG_TAG "native-activity"
-
-#define _LOG(priority, fmt, ...)                    \
-  ((void)__android_log_print((priority), (LOG_TAG), \
-                             (fmt)__VA_OPT__(, ) __VA_ARGS__))
-
-#define LOGE(fmt, ...) _LOG(ANDROID_LOG_ERROR, (fmt)__VA_OPT__(, ) __VA_ARGS__)
-#define LOGW(fmt, ...) _LOG(ANDROID_LOG_WARN, (fmt)__VA_OPT__(, ) __VA_ARGS__)
-#define LOGI(fmt, ...) _LOG(ANDROID_LOG_INFO, (fmt)__VA_OPT__(, ) __VA_ARGS__)
-
-[[noreturn]] __attribute__((__format__(__printf__, 1, 2))) static void fatal(
-    const char* fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  char* buf;
-  if (vasprintf(&buf, fmt, ap) < 0) {
-    android_set_abort_message("failed for format error message");
-  } else {
-    android_set_abort_message(buf);
-    // Also log directly, since the default Android Studio logcat filter hides
-    // the backtrace which would otherwise show the abort message.
-    LOGE("%s", buf);
-  }
-  std::abort();
-}
-
 #define CHECK_NOT_NULL(value)                                           \
   do {                                                                  \
-    if ((value) == nullptr) {                                           \
-      fatal("%s:%d:%s must not be null", __PRETTY_FUNCTION__, __LINE__, \
-            #value);                                                    \
-    }                                                                   \
+    CHECKF((value) != nullptr, "%s:%d:%s must not be null",             \
+           __PRETTY_FUNCTION__, __LINE__, #value);                       \
   } while (false)
 
 // Note: little endian, the opposite of normal hex color codes. ABGR, rather
@@ -187,7 +160,8 @@ class Engine {
           color_ = Color::kRed;
           break;
         default:
-          fatal("unexpected color %08x", static_cast<uint32_t>(color_));
+          CHECKF(false, "unexpected color %08x",
+                 static_cast<uint32_t>(color_));
       }
       last_update_ = now;
     }
@@ -317,7 +291,7 @@ void android_main(android_app* state) {
     auto result = ALooper_pollOnce(-1, nullptr, nullptr,
                                    reinterpret_cast<void**>(&source));
     if (result == ALOOPER_POLL_ERROR) {
-      fatal("ALooper_pollOnce returned an error");
+      CHECKF(false, "ALooper_pollOnce returned an error");
     }
 
     if (source != nullptr) {

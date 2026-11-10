@@ -38,7 +38,6 @@ target_link_libraries(ndk_camera
     base::base
     camera-utils::camera-utils
     android
-    log
     m
     $<LINK_LIBRARY:WHOLE_ARCHIVE,native_app_glue>
     camera2ndk

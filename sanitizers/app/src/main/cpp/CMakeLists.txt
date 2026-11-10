@@ -5,7 +5,7 @@ include(AppLibrary)
 find_package(base CONFIG REQUIRED)
 
 add_app_library(sanitizers SHARED native-lib.cpp)
-target_link_libraries(sanitizers PRIVATE base::base log)
+target_link_libraries(sanitizers PRIVATE base::base)
 
 if(SANITIZE)
     # For asan and ubsan, we need to copy some files from the NDK into our APK.

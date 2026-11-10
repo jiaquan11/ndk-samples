@@ -120,7 +120,7 @@ bool RendererES3::init() {
   glEnableVertexAttribArray(OFFSET_ATTRIB);
   glVertexAttribDivisor(OFFSET_ATTRIB, 1);
 
-  ALOGV("Using OpenGL ES 3.0 renderer");
+  LOGV("Using OpenGL ES 3.0 renderer");
   return true;
 }
 

@@ -19,7 +19,6 @@
 
 #include <EGL/egl.h>
 #include <GLES/gl.h>
-#include <android/log.h>
 #include <jni.h>
 
 #include <map>

@@ -15,6 +15,6 @@ target_compile_options(app PUBLIC -fenable-matrix -fopenmp)
 
 target_link_libraries(app
     PRIVATE
+    # LOGI(...) 的 -llog 依赖由 base::base 的 Prefab 链接接口传递。
     base::base
-    log
 )

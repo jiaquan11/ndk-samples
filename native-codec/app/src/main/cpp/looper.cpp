@@ -29,10 +29,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// for __android_log_print(ANDROID_LOG_INFO, "YourApp", "formatted message");
-#include <android/log.h>
-#define TAG "NativeCodec-looper"
-#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, TAG, __VA_ARGS__)
+#define LOG_TAG "NativeCodec-looper"
+#include <base/logging.h>
 
 struct loopermessage;
 typedef struct loopermessage loopermessage;
