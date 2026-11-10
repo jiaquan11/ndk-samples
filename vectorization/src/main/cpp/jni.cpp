@@ -35,13 +35,7 @@ static jlong BenchmarkMatrixMultiplyJni(JNIEnv* _Nonnull /* env */,
   return static_cast<jlong>(result.error());
 }
 
-JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm,
-                          void* _Nullable reserved __unused) {
-  JNIEnv* env;
-  if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
-    return JNI_ERR;
-  }
-
+static jint RegisterNativeMethods(JNIEnv* env) {
   jclass c = env->FindClass("com/android/ndk/samples/vectorization/AppJni");
   if (c == nullptr) return JNI_ERR;
 
@@ -49,8 +43,18 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm,
       {"benchmarkMatrixMultiply", "(I)J",
        reinterpret_cast<void*>(BenchmarkMatrixMultiplyJni)},
   };
-  int rc = env->RegisterNatives(c, methods, arraysize(methods));
-  if (rc != JNI_OK) return rc;
+  return env->RegisterNatives(c, methods, arraysize(methods));
+}
+
+JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm,
+                          void* _Nullable reserved __unused) {
+  JNIEnv* env;
+  if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+    return JNI_ERR;
+  }
+
+  const jint registration_result = RegisterNativeMethods(env);
+  if (registration_result != JNI_OK) return registration_result;
 
   return JNI_VERSION_1_6;
 }

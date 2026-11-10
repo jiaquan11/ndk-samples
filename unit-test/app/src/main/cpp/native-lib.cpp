@@ -5,6 +5,16 @@
 
 jint Add(JNIEnv*, jobject, jint a, jint b) { return add((int)a, (int)b); }
 
+static jint RegisterNativeMethods(JNIEnv* env) {
+  jclass c = env->FindClass("com/example/unittest/MainActivity");
+  if (c == nullptr) return JNI_ERR;
+
+  static const JNINativeMethod methods[] = {
+      {"add", "(II)I", reinterpret_cast<void*>(Add)},
+  };
+  return env->RegisterNatives(c, methods, arraysize(methods));
+}
+
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,
                                              void* _Nullable) {
   JNIEnv* env;
@@ -12,14 +22,8 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,
     return JNI_ERR;
   }
 
-  jclass c = env->FindClass("com/example/unittest/MainActivity");
-  if (c == nullptr) return JNI_ERR;
-
-  static const JNINativeMethod methods[] = {
-      {"add", "(II)I", reinterpret_cast<void*>(Add)},
-  };
-  int rc = env->RegisterNatives(c, methods, arraysize(methods));
-  if (rc != JNI_OK) return rc;
+  const jint registration_result = RegisterNativeMethods(env);
+  if (registration_result != JNI_OK) return registration_result;
 
   return JNI_VERSION_1_6;
 }

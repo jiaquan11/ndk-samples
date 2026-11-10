@@ -144,12 +144,7 @@ void OnPreviewSurfaceDestroyed(JNIEnv* env, jobject, jlong ndkCameraObj,
   pApp->StartPreview(false);
 }
 
-extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {
-  JNIEnv* env;
-  if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
-    return JNI_ERR;
-  }
-
+static jint RegisterNativeMethods(JNIEnv* env) {
   jclass c = env->FindClass("com/sample/textureview/ViewActivity");
   if (c == nullptr) return JNI_ERR;
 
@@ -164,8 +159,17 @@ extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {
       {"onPreviewSurfaceDestroyed", "(JLandroid/view/Surface;)V",
        reinterpret_cast<void*>(OnPreviewSurfaceDestroyed)},
   };
-  int rc = env->RegisterNatives(c, methods, arraysize(methods));
-  if (rc != JNI_OK) return rc;
+  return env->RegisterNatives(c, methods, arraysize(methods));
+}
+
+extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {
+  JNIEnv* env;
+  if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+    return JNI_ERR;
+  }
+
+  const jint registration_result = RegisterNativeMethods(env);
+  if (registration_result != JNI_OK) return registration_result;
 
   return JNI_VERSION_1_6;
 }
