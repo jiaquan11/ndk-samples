@@ -19,10 +19,6 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
-    }
-
-    buildFeatures {
         // Prefab 消费端开关：让 AGP 将 Gradle 依赖提供的 Native Package
         // 暴露给 CMake。还必须声明依赖，并在 CMake 中 find_package/link。
         prefab true

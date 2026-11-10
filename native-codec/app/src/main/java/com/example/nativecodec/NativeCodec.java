@@ -27,11 +27,12 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.RadioButton;
 import android.widget.Spinner;
+
+import com.example.nativecodec.databinding.MainBinding;
 
 import java.io.IOException;
 
@@ -56,12 +57,13 @@ public class NativeCodec extends Activity {
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        setContentView(R.layout.main);
+        MainBinding binding = MainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        mGLView1 = (MyGLSurfaceView) findViewById(R.id.glsurfaceview1);
+        mGLView1 = binding.glsurfaceview1;
 
         // set up the Surface 1 video sink
-        mSurfaceView1 = (SurfaceView) findViewById(R.id.surfaceview1);
+        mSurfaceView1 = binding.surfaceview1;
         mSurfaceHolder1 = mSurfaceView1.getHolder();
 
         mSurfaceHolder1.addCallback(new SurfaceHolder.Callback() {
@@ -88,7 +90,7 @@ public class NativeCodec extends Activity {
         });
 
         // initialize content source spinner
-        Spinner sourceSpinner = (Spinner) findViewById(R.id.source_spinner);
+        Spinner sourceSpinner = binding.sourceSpinner;
         ArrayAdapter<CharSequence> sourceAdapter = ArrayAdapter.createFromResource(
                 this, R.array.source_array, android.R.layout.simple_spinner_item);
         sourceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -109,8 +111,8 @@ public class NativeCodec extends Activity {
 
         });
 
-        mRadio1 = (RadioButton) findViewById(R.id.radio1);
-        mRadio2 = (RadioButton) findViewById(R.id.radio2);
+        mRadio1 = binding.radio1;
+        mRadio2 = binding.radio2;
 
         OnCheckedChangeListener checklistener = new CompoundButton.OnCheckedChangeListener() {
 
@@ -163,7 +165,7 @@ public class NativeCodec extends Activity {
         // initialize button click handlers
 
         // native MediaPlayer start/pause
-        ((Button) findViewById(R.id.start_native)).setOnClickListener(new View.OnClickListener() {
+        binding.startNative.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
@@ -190,7 +192,7 @@ public class NativeCodec extends Activity {
 
 
         // native MediaPlayer rewind
-        ((Button) findViewById(R.id.rewind_native)).setOnClickListener(new View.OnClickListener() {
+        binding.rewindNative.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {

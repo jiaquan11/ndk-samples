@@ -31,11 +31,12 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Spinner;
 import android.widget.Toast;
+
+import com.example.nativeaudio.databinding.MainBinding;
 
 public class NativeAudio extends Activity
         implements ActivityCompat.OnRequestPermissionsResultCallback {
@@ -63,7 +64,8 @@ public class NativeAudio extends Activity
     @TargetApi(17)
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        setContentView(R.layout.main);
+        MainBinding binding = MainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
         assetManager = getAssets();
 
@@ -88,7 +90,7 @@ public class NativeAudio extends Activity
         createBufferQueueAudioPlayer(sampleRate, bufSize);
 
         // initialize URI spinner
-        Spinner uriSpinner = (Spinner) findViewById(R.id.uri_spinner);
+        Spinner uriSpinner = binding.uriSpinner;
         ArrayAdapter<CharSequence> uriAdapter = ArrayAdapter.createFromResource(
                 this, R.array.uri_spinner_array, android.R.layout.simple_spinner_item);
         uriAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -107,28 +109,28 @@ public class NativeAudio extends Activity
 
         // initialize button click handlers
 
-        ((Button) findViewById(R.id.hello)).setOnClickListener(new OnClickListener() {
+        binding.hello.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 // ignore the return value
                 selectClip(CLIP_HELLO, 5);
             }
         });
 
-        ((Button) findViewById(R.id.android)).setOnClickListener(new OnClickListener() {
+        binding.android.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 // ignore the return value
                 selectClip(CLIP_ANDROID, 7);
             }
         });
 
-        ((Button) findViewById(R.id.sawtooth)).setOnClickListener(new OnClickListener() {
+        binding.sawtooth.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 // ignore the return value
                 selectClip(CLIP_SAWTOOTH, 1);
             }
         });
 
-        ((Button) findViewById(R.id.reverb)).setOnClickListener(new OnClickListener() {
+        binding.reverb.setOnClickListener(new OnClickListener() {
             boolean enabled = false;
             public void onClick(View view) {
                 enabled = !enabled;
@@ -138,7 +140,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.embedded_soundtrack)).setOnClickListener(new OnClickListener() {
+        binding.embeddedSoundtrack.setOnClickListener(new OnClickListener() {
             boolean created = false;
             public void onClick(View view) {
                 if (!created) {
@@ -153,7 +155,7 @@ public class NativeAudio extends Activity
 
         // native uriPlayer is broken in android 21 and over, internal bug id: b/29321867
         // will re-open after it is fixed in later OSes
-        ((Button) findViewById(R.id.uri_soundtrack)).setOnClickListener(new OnClickListener() {
+        binding.uriSoundtrack.setOnClickListener(new OnClickListener() {
             boolean created = false;
             public void onClick(View view) {
                 if (!created && URI != null) {
@@ -162,19 +164,19 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.pause_uri)).setOnClickListener(new OnClickListener() {
+        binding.pauseUri.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 setPlayingUriAudioPlayer(false);
             }
         });
 
-        ((Button) findViewById(R.id.play_uri)).setOnClickListener(new OnClickListener() {
+        binding.playUri.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 setPlayingUriAudioPlayer(true);
             }
         });
 
-        ((Button) findViewById(R.id.loop_uri)).setOnClickListener(new OnClickListener() {
+        binding.loopUri.setOnClickListener(new OnClickListener() {
             boolean isLooping = false;
             public void onClick(View view) {
                 isLooping = !isLooping;
@@ -182,7 +184,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.mute_left_uri)).setOnClickListener(new OnClickListener() {
+        binding.muteLeftUri.setOnClickListener(new OnClickListener() {
             boolean muted = false;
             public void onClick(View view) {
                 muted = !muted;
@@ -190,7 +192,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.mute_right_uri)).setOnClickListener(new OnClickListener() {
+        binding.muteRightUri.setOnClickListener(new OnClickListener() {
             boolean muted = false;
             public void onClick(View view) {
                 muted = !muted;
@@ -198,7 +200,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.solo_left_uri)).setOnClickListener(new OnClickListener() {
+        binding.soloLeftUri.setOnClickListener(new OnClickListener() {
             boolean soloed = false;
             public void onClick(View view) {
                 soloed = !soloed;
@@ -206,7 +208,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.solo_right_uri)).setOnClickListener(new OnClickListener() {
+        binding.soloRightUri.setOnClickListener(new OnClickListener() {
             boolean soloed = false;
             public void onClick(View view) {
                 soloed = !soloed;
@@ -214,7 +216,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.mute_uri)).setOnClickListener(new OnClickListener() {
+        binding.muteUri.setOnClickListener(new OnClickListener() {
             boolean muted = false;
             public void onClick(View view) {
                 muted = !muted;
@@ -222,7 +224,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.enable_stereo_position_uri)).setOnClickListener(
+        binding.enableStereoPositionUri.setOnClickListener(
                 new OnClickListener() {
                     boolean enabled = false;
                     public void onClick(View view) {
@@ -231,7 +233,7 @@ public class NativeAudio extends Activity
                     }
                 });
 
-        ((Button) findViewById(R.id.channels_uri)).setOnClickListener(new OnClickListener() {
+        binding.channelsUri.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 if (numChannelsUri == 0) {
                     numChannelsUri = getNumChannelsUriAudioPlayer();
@@ -241,7 +243,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((SeekBar) findViewById(R.id.volume_uri)).setOnSeekBarChangeListener(
+        binding.volumeUri.setOnSeekBarChangeListener(
                 new OnSeekBarChangeListener() {
                     int lastProgress = 100;
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -259,7 +261,7 @@ public class NativeAudio extends Activity
                     }
                 });
 
-        ((SeekBar) findViewById(R.id.pan_uri)).setOnSeekBarChangeListener(
+        binding.panUri.setOnSeekBarChangeListener(
                 new OnSeekBarChangeListener() {
                     int lastProgress = 100;
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -276,18 +278,21 @@ public class NativeAudio extends Activity
                     }
                 });
         if (Build.VERSION.SDK_INT > 19) {
-            int[]  uriIds = { R.id.uri_soundtrack, R.id.pause_uri,
-                              R.id.play_uri,       R.id.loop_uri,
-                              R.id.mute_left_uri,  R.id.mute_right_uri,
-                              R.id.solo_left_uri,  R.id.solo_right_uri,
-                              R.id.mute_uri,       R.id.enable_stereo_position_uri,
-                              R.id.channels_uri,   R.id.volume_uri,
-                              R.id.pan_uri,        R.id.uri_spinner,};
-            for(int id : uriIds)
-                findViewById(id).setEnabled(false);
+            View[] uriViews = {
+                    binding.uriSoundtrack, binding.pauseUri,
+                    binding.playUri, binding.loopUri,
+                    binding.muteLeftUri, binding.muteRightUri,
+                    binding.soloLeftUri, binding.soloRightUri,
+                    binding.muteUri, binding.enableStereoPositionUri,
+                    binding.channelsUri, binding.volumeUri,
+                    binding.panUri, binding.uriSpinner,
+            };
+            for (View view : uriViews) {
+                view.setEnabled(false);
+            }
         }
 
-        ((Button) findViewById(R.id.record)).setOnClickListener(new OnClickListener() {
+        binding.record.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 int status = ActivityCompat.checkSelfPermission(NativeAudio.this,
                         Manifest.permission.RECORD_AUDIO);
@@ -302,7 +307,7 @@ public class NativeAudio extends Activity
             }
         });
 
-        ((Button) findViewById(R.id.playback)).setOnClickListener(new OnClickListener() {
+        binding.playback.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
                 // ignore the return value
                 selectClip(CLIP_PLAYBACK, 3);

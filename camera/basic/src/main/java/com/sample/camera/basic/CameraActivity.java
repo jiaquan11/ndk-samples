@@ -39,6 +39,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.sample.camera.basic.databinding.WidgetsBinding;
+
 import static android.hardware.camera2.CameraMetadata.LENS_FACING_BACK;
 
 import java.util.Arrays;
@@ -282,9 +284,9 @@ public class CameraActivity extends NativeActivity
                     LayoutInflater layoutInflater
                             = (LayoutInflater) getBaseContext()
                             .getSystemService(LAYOUT_INFLATER_SERVICE);
-                    View popupView = layoutInflater.inflate(R.layout.widgets, null);
+                    WidgetsBinding binding = WidgetsBinding.inflate(layoutInflater);
                     _popupWindow = new PopupWindow(
-                            popupView,
+                            binding.getRoot(),
                             WindowManager.LayoutParams.MATCH_PARENT,
                             WindowManager.LayoutParams.WRAP_CONTENT);
 
@@ -298,7 +300,7 @@ public class CameraActivity extends NativeActivity
                     _popupWindow.showAtLocation(mainLayout, Gravity.BOTTOM | Gravity.START, 0, 0);
                     _popupWindow.update();
 
-                    _takePhoto = (ImageButton) popupView.findViewById(R.id.takePhoto);
+                    _takePhoto = binding.takePhoto;
                     _takePhoto.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -306,12 +308,12 @@ public class CameraActivity extends NativeActivity
                         }
                     });
                     _takePhoto.setEnabled(true);
-                    (popupView.findViewById(R.id.exposureLabel)).setEnabled(true);
-                    (popupView.findViewById(R.id.sensitivityLabel)).setEnabled(true);
+                    binding.exposureLabel.setEnabled(true);
+                    binding.sensitivityLabel.setEnabled(true);
 
-                    SeekBar seekBar = (SeekBar) popupView.findViewById(R.id.exposure_seekbar);
+                    SeekBar seekBar = binding.exposureSeekbar;
                     _exposure = new CameraSeekBar(seekBar,
-                            (TextView) popupView.findViewById(R.id.exposureVal),
+                            binding.exposureVal,
                             _initParams[0], _initParams[1], _initParams[2]);
                     seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                         @Override
@@ -328,9 +330,9 @@ public class CameraActivity extends NativeActivity
                         public void onStopTrackingTouch(SeekBar seekBar) {
                         }
                     });
-                    seekBar = ((SeekBar) popupView.findViewById(R.id.sensitivity_seekbar));
+                    seekBar = binding.sensitivitySeekbar;
                     _sensitivity = new CameraSeekBar(seekBar,
-                            (TextView) popupView.findViewById(R.id.sensitivityVal),
+                            binding.sensitivityVal,
                             _initParams[3], _initParams[4], _initParams[5]);
                     seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                         @Override

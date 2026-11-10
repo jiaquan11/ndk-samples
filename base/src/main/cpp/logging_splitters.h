@@ -19,7 +19,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#include <format>
+#include <string>
 
 #include "base/logging.h"
 
@@ -70,7 +70,7 @@ static void SplitByLogdChunks(LogId log_id, LogSeverity severity,
 
   std::string file_header;
   if (add_file) {
-    file_header = std::format("{}:{}]", file, line);
+    file_header = std::string(file) + ":" + std::to_string(line) + "]";
   }
   int file_header_size = file_header.size();
 

@@ -29,6 +29,8 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import com.sample.teapot.databinding.WidgetsBinding;
+
 public class TeapotNativeActivity extends NativeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,9 +104,9 @@ public class TeapotNativeActivity extends NativeActivity {
                 LayoutInflater layoutInflater
                 = (LayoutInflater)getBaseContext()
                 .getSystemService(LAYOUT_INFLATER_SERVICE);
-                View popupView = layoutInflater.inflate(R.layout.widgets, null);
+                WidgetsBinding binding = WidgetsBinding.inflate(layoutInflater);
                 _popupWindow = new PopupWindow(
-                        popupView,
+                        binding.getRoot(),
                         LayoutParams.WRAP_CONTENT,
                         LayoutParams.WRAP_CONTENT);
 
@@ -117,7 +119,7 @@ public class TeapotNativeActivity extends NativeActivity {
                 _popupWindow.showAtLocation(mainLayout, Gravity.TOP | Gravity.START, 10, 10);
                 _popupWindow.update();
 
-                _label = (TextView)popupView.findViewById(R.id.textViewFPS);
+                _label = binding.textViewFPS;
 
             }});
     }

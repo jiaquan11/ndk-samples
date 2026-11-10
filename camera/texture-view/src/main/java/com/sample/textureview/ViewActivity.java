@@ -37,6 +37,8 @@ import android.view.View;
 import android.util.Size;
 import android.widget.FrameLayout;
 
+import com.sample.textureview.databinding.ActivityMainBinding;
+
 import static android.hardware.camera2.CameraMetadata.LENS_FACING_BACK;
 
 public class ViewActivity extends Activity
@@ -51,7 +53,9 @@ public class ViewActivity extends Activity
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         onWindowFocusChanged(true);
-        setContentView(R.layout.activity_main);
+        ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+        textureView_ = binding.texturePreview;
         if (isCamera2Device()) {
             RequestCamera();
         } else {
@@ -95,7 +99,6 @@ public class ViewActivity extends Activity
         return camera2Dev;
     }
     private void createTextureView() {
-        textureView_ = (TextureView) findViewById(R.id.texturePreview);
         textureView_.setSurfaceTextureListener(this);
         if (textureView_.isAvailable()) {
             onSurfaceTextureAvailable(textureView_.getSurfaceTexture(),

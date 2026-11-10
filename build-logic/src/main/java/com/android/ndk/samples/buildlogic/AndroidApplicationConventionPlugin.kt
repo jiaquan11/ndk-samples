@@ -55,6 +55,13 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     targetCompatibility = AndroidBuildConfig.JAVA
                 }
 
+                // XML-based app modules use generated binding classes instead of
+                // repeating findViewById calls. Modules without layouts simply have
+                // no binding classes to consume and keep their existing UI model.
+                buildFeatures {
+                    viewBinding = true
+                }
+
                 // Studio will not automatically pass logcat through ndk-stack, so we need to avoid
                 // stripping debug binaries if we want the crash trace to be readable.
                 buildTypes {

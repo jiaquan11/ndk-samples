@@ -18,25 +18,28 @@ package com.example.hellojnicallback;
 import androidx.annotation.Keep;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import android.widget.TextView;
+
+import com.example.hellojnicallback.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
 
     int hour = 0;
     int minute = 0;
     int second = 0;
-    TextView tickView;
+    private ActivityMainBinding binding;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        tickView = (TextView) findViewById(R.id.tickView);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
     }
+
     @Override
     public void onResume() {
         super.onResume();
         hour = minute = second = 0;
-        ((TextView)findViewById(R.id.hellojniMsg)).setText(stringFromJNI());
+        binding.hellojniMsg.setText(stringFromJNI());
         startTicks();
     }
 
@@ -66,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
                 String ticks = "" + MainActivity.this.hour + ":" +
                         MainActivity.this.minute + ":" +
                         MainActivity.this.second;
-                MainActivity.this.tickView.setText(ticks);
+                MainActivity.this.binding.tickView.setText(ticks);
             }
         });
     }

@@ -10,9 +10,8 @@ add_app_library(base
     logging.cpp
 )
 
-# base 的公开头文件只要求 C++17；内部 logging_splitters.h 使用 std::format，
-# 因此仅将实现侧的编译标准提高到 C++23，不把该要求传播给消费端。
-target_compile_features(base PRIVATE cxx_std_23)
+# add_app_library() 已通过 AppLibrary.cmake 为目标声明 C++17；
+# base 的公开头文件和内部实现保持同一语言标准。
 target_compile_options(base PRIVATE -Wno-vla-cxx-extension)
 # PUBLIC 是 CMake 目标自身的使用要求；Prefab 对外打包哪些头文件，
 # 仍由 build.gradle.kts 中的 prefab.headers 单独指定。

@@ -29,13 +29,14 @@ import android.view.View;
 
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import android.os.Handler;
+
+import com.example.nativemidi.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
 
@@ -76,7 +77,8 @@ public class MainActivity extends Activity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
         //
         // Init JNI for data receive callback
@@ -86,28 +88,28 @@ public class MainActivity extends Activity
         //
         // Setup UI
         //
-        mOutputDevicesSpinner = (Spinner)findViewById(R.id.outputDevicesSpinner);
+        mOutputDevicesSpinner = binding.outputDevicesSpinner;
         mOutputDevicesSpinner.setOnItemSelectedListener(this);
 
-        ((Button)findViewById(R.id.keyDownBtn)).setOnClickListener(this);
-        ((Button)findViewById(R.id.keyUpBtn)).setOnClickListener(this);
-        ((Button)findViewById(R.id.progChangeBtn)).setOnClickListener(this);
+        binding.keyDownBtn.setOnClickListener(this);
+        binding.keyUpBtn.setOnClickListener(this);
+        binding.progChangeBtn.setOnClickListener(this);
 
-        mControllerSB = (SeekBar)findViewById(R.id.controllerSeekBar);
+        mControllerSB = binding.controllerSeekBar;
         mControllerSB.setMax(MidiSpec.MAX_CC_VALUE);
         mControllerSB.setOnSeekBarChangeListener(this);
 
-        mPitchBendSB = (SeekBar)findViewById(R.id.pitchBendSeekBar);
+        mPitchBendSB = binding.pitchBendSeekBar;
         mPitchBendSB.setMax(MidiSpec.MAX_PITCHBEND_VALUE);
         mPitchBendSB.setProgress(MidiSpec.MID_PITCHBEND_VALUE);
         mPitchBendSB.setOnSeekBarChangeListener(this);
 
-        mInputDevicesSpinner = (Spinner)findViewById(R.id.inputDevicesSpinner);
+        mInputDevicesSpinner = binding.inputDevicesSpinner;
         mInputDevicesSpinner.setOnItemSelectedListener(this);
 
-        mProgNumberEdit = (EditText)findViewById(R.id.progNumEdit);
+        mProgNumberEdit = binding.progNumEdit;
 
-        mReceiveMessageTx = (TextView)findViewById(R.id.receiveMessageTx);
+        mReceiveMessageTx = binding.receiveMessageTx;
 
         MidiManager midiManager = (MidiManager) getSystemService(Context.MIDI_SERVICE);
         midiManager.registerDeviceCallback(new MidiDeviceCallback(), new Handler());

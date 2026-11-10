@@ -27,7 +27,6 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
         // 同一消费模块可以同时使用本地 Prefab Package（:base）和
         // Maven AAR 提供的 Package（googletest、junit-gtest）。
         prefab true
