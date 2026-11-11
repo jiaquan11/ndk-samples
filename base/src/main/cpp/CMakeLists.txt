@@ -12,7 +12,6 @@ add_app_library(base
 
 # add_app_library() 已通过 AppLibrary.cmake 为目标声明 C++17；
 # base 的公开头文件和内部实现保持同一语言标准。
-target_compile_options(base PRIVATE -Wno-vla-cxx-extension)
 # PUBLIC 是 CMake 目标自身的使用要求；Prefab 对外打包哪些头文件，
 # 仍由 build.gradle.kts 中的 prefab.headers 单独指定。
 target_include_directories(base PUBLIC include)

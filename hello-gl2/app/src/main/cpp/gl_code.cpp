@@ -20,7 +20,7 @@
 #include <GLES2/gl2ext.h>
 #define LOG_TAG "libgl2jni"
 #include <base/logging.h>
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 #include <math.h>
 #include <stdio.h>
@@ -175,7 +175,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"init", "(II)V", reinterpret_cast<void*>(Init)},
       {"step", "()V", reinterpret_cast<void*>(Step)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {

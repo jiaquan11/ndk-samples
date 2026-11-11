@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 
 // Data callback stuff
@@ -44,7 +44,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
   static const JNINativeMethod methods[] = {
       {"initNative", "()V", reinterpret_cast<void*>(InitNative)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,

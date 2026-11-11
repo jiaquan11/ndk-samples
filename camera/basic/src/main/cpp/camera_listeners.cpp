@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <ndksamples/camera/native_debug.h>
+
 #include <camera/NdkCameraManager.h>
 #include <ndksamples/camera/camera_utils.h>
-#include <ndksamples/camera/native_debug.h>
 
 #include <cinttypes>
 #include <queue>

@@ -1,4 +1,4 @@
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 
 #include "adder.h"
@@ -12,7 +12,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
   static const JNINativeMethod methods[] = {
       {"add", "(II)I", reinterpret_cast<void*>(Add)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,

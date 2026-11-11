@@ -15,17 +15,18 @@
  */
 
 #define LOG_TAG "hellovkjni"
-#include <base/logging.h>
-
 #include <android/asset_manager.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <assert.h>
+#include <base/logging.h>
 #include <vulkan/vulkan.h>
 
 #include <array>
+#include <cstring>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <sstream>

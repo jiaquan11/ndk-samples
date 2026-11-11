@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <base/macros.h>
+#include <iterator>
 #include <ndksamples/camera/native_debug.h>
 
 #include "camera_engine.h"
@@ -160,7 +160,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"OnSensitivityChanged", "(J)V",
        reinterpret_cast<void*>(OnSensitivityChanged)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {

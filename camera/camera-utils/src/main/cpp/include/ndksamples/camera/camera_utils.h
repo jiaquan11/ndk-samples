@@ -19,6 +19,8 @@
 #include <camera/NdkCameraError.h>
 #include <camera/NdkCameraManager.h>
 
+#include <base/logging.h>
+
 /*
  * A set of macros to call into Camera APIs. The API is grouped with a few
  * objects, with object name as the prefix of function names.

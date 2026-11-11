@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 
 #include <expected>
@@ -43,7 +43,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"benchmarkMatrixMultiply", "(I)J",
        reinterpret_cast<void*>(BenchmarkMatrixMultiplyJni)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm,

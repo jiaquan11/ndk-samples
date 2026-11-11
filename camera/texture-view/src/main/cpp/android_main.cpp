@@ -22,7 +22,7 @@
  *     Tested:
  *         Google Pixel and Nexus 6 phones
  */
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 #include <ndksamples/camera/native_debug.h>
 
@@ -159,7 +159,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"onPreviewSurfaceDestroyed", "(JLandroid/view/Surface;)V",
        reinterpret_cast<void*>(OnPreviewSurfaceDestroyed)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {

@@ -1,4 +1,4 @@
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 
 #include <stdexcept>
@@ -26,7 +26,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
   static const JNINativeMethod methods[] = {
       {"throwsException", "()V", reinterpret_cast<void*>(ThrowsException)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {

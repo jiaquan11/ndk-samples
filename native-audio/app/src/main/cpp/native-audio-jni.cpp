@@ -22,7 +22,7 @@
  */
 
 #include <assert.h>
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -994,7 +994,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"startRecording", "()V", reinterpret_cast<void*>(StartRecording)},
       {"shutdown", "()V", reinterpret_cast<void*>(Shutdown)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,

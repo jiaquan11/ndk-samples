@@ -16,131 +16,108 @@
 
 #pragma once
 
-#include <inttypes.h>
-#include <time.h>
-
+#include <array>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 
 #include "base/logging.h"
 
-#define LOGGER_ENTRY_MAX_PAYLOAD 4068  // This constant is not in the NDK.
-
 namespace ndksamples::base {
 
-// This splits the message up line by line, by calling log_function with a
-// pointer to the start of each line and the size up to the newline character.
-// It sends size = -1 for the final line.
-template <typename F, typename... Args>
-static void SplitByLines(const char* msg, const F& log_function,
-                         Args&&... args) {
-  const char* newline = strchr(msg, '\n');
-  while (newline != nullptr) {
-    log_function(msg, newline - msg, args...);
-    msg = newline + 1;
-    newline = strchr(msg, '\n');
-  }
+inline constexpr std::size_t kLoggerEntryMaxPayload = 4068;
 
-  log_function(msg, -1, args...);
-}
-
-// This splits the message up into chunks that logs can process delimited by new
-// lines.  It calls log_function with the exact null terminated message that
-// should be sent to logd. Note, despite the loops and snprintf's, if severity
-// is not fatal and there are no new lines, this function simply calls
-// log_function with msg without any extra overhead.
+// Splits newline-delimited messages into payloads accepted by logd. To retain
+// the existing AOSP-compatible behavior, an oversized line followed by a
+// newline is truncated in this helper. A non-fatal message with no newline is
+// passed directly to liblog, which applies the final payload limit.
 template <typename F>
-static void SplitByLogdChunks(LogId log_id, LogSeverity severity,
-                              const char* tag, const char* file,
-                              unsigned int line, const char* msg,
-                              const F& log_function) {
-  // The maximum size of a payload, after the log header that logd will accept
-  // is LOGGER_ENTRY_MAX_PAYLOAD, so subtract the other elements in the payload
-  // to find the size of the string that we can log in each pass. The protocol
-  // is documented in liblog/README.protocol.md. Specifically we subtract a byte
-  // for the priority, the length of the tag + its null terminator, and an
-  // additional byte for the null terminator on the payload.  We subtract an
-  // additional 32 bytes for slack, similar to java/android/util/Log.java.
-  ptrdiff_t max_size = LOGGER_ENTRY_MAX_PAYLOAD - strlen(tag) - 35;
+void SplitByLogdChunks(LogSeverity severity, const char* tag, const char* file,
+                       unsigned int line, const char* msg,
+                       const F& log_function) {
+  // Subtract priority, the tag and both null terminators, plus 32 bytes of
+  // slack as used by android.util.Log.
+  const std::ptrdiff_t max_size =
+      static_cast<std::ptrdiff_t>(kLoggerEntryMaxPayload) -
+      static_cast<std::ptrdiff_t>(std::strlen(tag)) - 35;
   if (max_size <= 0) {
-    abort();
+    std::abort();
   }
-  // If we're logging a fatal message, we'll append the file and line numbers.
-  bool add_file =
+
+  const bool add_file =
       file != nullptr && (severity == FATAL || severity == FATAL_WITHOUT_ABORT);
+  const std::string file_header =
+      add_file ? std::string(file) + ":" + std::to_string(line) + "] " : "";
+  const std::ptrdiff_t file_header_size =
+      static_cast<std::ptrdiff_t>(file_header.size());
 
-  std::string file_header;
-  if (add_file) {
-    file_header = std::string(file) + ":" + std::to_string(line) + "]";
-  }
-  int file_header_size = file_header.size();
-
-  __attribute__((uninitialized)) char logd_chunk[max_size + 1];
-  ptrdiff_t chunk_position = 0;
+  // The backing storage is fixed-size standard C++; the active capacity still
+  // uses max_size so space remains reserved for the current log tag.
+  std::array<char, kLoggerEntryMaxPayload + 1> logd_chunk;
+  std::ptrdiff_t chunk_position = 0;
+  bool chunk_has_line = false;
 
   auto call_log_function = [&]() {
-    log_function(log_id, severity, tag, logd_chunk);
+    log_function(severity, tag, logd_chunk.data());
     chunk_position = 0;
+    chunk_has_line = false;
   };
 
   auto write_to_logd_chunk = [&](const char* message, int length) {
-    int size_written = 0;
-    const char* new_line = chunk_position > 0 ? "\n" : "";
-    if (add_file) {
-      size_written = snprintf(logd_chunk + chunk_position,
-                              sizeof(logd_chunk) - chunk_position, "%s%s%.*s",
-                              new_line, file_header.c_str(), length, message);
-    } else {
-      size_written = snprintf(logd_chunk + chunk_position,
-                              sizeof(logd_chunk) - chunk_position, "%s%.*s",
-                              new_line, length, message);
+    const std::size_t capacity =
+        static_cast<std::size_t>(max_size - chunk_position + 1);
+    const char* new_line = chunk_has_line ? "\n" : "";
+    const int size_written =
+        add_file ? std::snprintf(logd_chunk.data() + chunk_position, capacity,
+                                 "%s%s%.*s", new_line, file_header.c_str(),
+                                 length, message)
+                 : std::snprintf(logd_chunk.data() + chunk_position, capacity,
+                                 "%s%.*s", new_line, length, message);
+
+    if (size_written < 0) {
+      return;
     }
 
-    // This should never fail, if it does and we set size_written to 0, which
-    // will skip this line and move to the next one.
-    if (size_written < 0) {
-      size_written = 0;
-    }
-    chunk_position += size_written;
+    // snprintf returns the size it wanted to write. Clamp to the bytes that
+    // actually fit so subsequent capacity calculations stay in range.
+    const std::ptrdiff_t available = max_size - chunk_position;
+    chunk_position += size_written > available ? available : size_written;
+    // An empty logical line writes no payload bytes, so track it separately
+    // from chunk_position to preserve leading and repeated empty lines.
+    chunk_has_line = true;
   };
 
-  const char* newline = strchr(msg, '\n');
+  const char* newline = std::strchr(msg, '\n');
   while (newline != nullptr) {
-    // If we have data in the buffer and this next line doesn't fit, write the
-    // buffer.
-    if (chunk_position != 0 &&
+    if (chunk_has_line &&
         chunk_position + (newline - msg) + 1 + file_header_size > max_size) {
       call_log_function();
     }
 
-    // Otherwise, either the next line fits or we have any empty buffer and too
-    // large of a line to ever fit, in both cases, we add it to the buffer and
-    // continue.
-    write_to_logd_chunk(msg, newline - msg);
-
+    write_to_logd_chunk(msg, static_cast<int>(newline - msg));
     msg = newline + 1;
-    newline = strchr(msg, '\n');
+    newline = std::strchr(msg, '\n');
   }
 
-  // If we have left over data in the buffer and we can fit the rest of msg, add
-  // it to the buffer then write the buffer.
-  if (chunk_position != 0 &&
-      chunk_position + static_cast<int>(strlen(msg)) + 1 + file_header_size <=
+  if (chunk_has_line &&
+      chunk_position + static_cast<std::ptrdiff_t>(std::strlen(msg)) + 1 +
+              file_header_size <=
           max_size) {
     write_to_logd_chunk(msg, -1);
     call_log_function();
   } else {
-    // If the buffer is not empty and we can't fit the rest of msg into it,
-    // write its contents.
-    if (chunk_position != 0) {
+    if (chunk_has_line) {
       call_log_function();
     }
-    // Then write the rest of the msg.
+
     if (add_file) {
-      snprintf(logd_chunk, sizeof(logd_chunk), "%s%s", file_header.c_str(),
-               msg);
-      log_function(log_id, severity, tag, logd_chunk);
+      std::snprintf(logd_chunk.data(), static_cast<std::size_t>(max_size + 1),
+                    "%s%s", file_header.c_str(), msg);
+      log_function(severity, tag, logd_chunk.data());
     } else {
-      log_function(log_id, severity, tag, msg);
+      log_function(severity, tag, msg);
     }
   }
 }

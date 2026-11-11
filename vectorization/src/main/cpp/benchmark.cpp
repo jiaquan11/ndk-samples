@@ -54,7 +54,11 @@ Vec4 result;
   // TODO: Move to a unit test.
   auto test = func(position, translation);
   auto expected = Vec4{{20, 10, 10, 1}};
-  CHECK_EQ(test, expected);
+  CHECKF(test == expected,
+         "Unexpected result: actual={%g, %g, %g, %g}, "
+         "expected={%g, %g, %g, %g}",
+         test[0, 0], test[1, 0], test[2, 0], test[3, 0], expected[0, 0],
+         expected[1, 0], expected[2, 0], expected[3, 0]);
 
   auto begin = std::chrono::steady_clock::now();
 

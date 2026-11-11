@@ -16,7 +16,7 @@
  */
 #define LOG_TAG "hello-jniCallback"
 #include <base/logging.h>
-#include <base/macros.h>
+#include <iterator>
 #include <inttypes.h>
 #include <jni.h>
 #include <pthread.h>
@@ -460,7 +460,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"startTicks", "()V", reinterpret_cast<void*>(StartTicks)},
       {"StopTicks", "()V", reinterpret_cast<void*>(StopTicks)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 static void ReleaseJniHandlerReferences(JNIEnv* env) {

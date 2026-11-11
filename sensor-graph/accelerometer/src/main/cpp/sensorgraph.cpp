@@ -39,7 +39,7 @@ const float SENSOR_FILTER_ALPHA = 0.1f;
  *    Workaround AsensorManager_getInstance() deprecation false alarm
  *    for Android-N and before, when compiling with NDK-r15
  */
-#include <base/macros.h>
+#include <iterator>
 #include <dlfcn.h>
 const char* kPackageName = "com.android.accelerometergraph";
 ASensorManager* AcquireASensorManagerInstance(void) {
@@ -285,7 +285,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"pause", "()V", reinterpret_cast<void*>(Pause)},
       {"resume", "()V", reinterpret_cast<void*>(Resume)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,

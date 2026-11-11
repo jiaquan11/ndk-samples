@@ -18,30 +18,23 @@
 
 #include <android/log.h>
 #include <android/set_abort_message.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <libgen.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <string.h>
 
-#include <atomic>
-#include <iostream>
-#include <limits>
+#include <cstdint>
 #include <mutex>
-#include <optional>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
 
-#include "base/macros.h"
 #include "logging_splitters.h"
 
 namespace ndksamples::base {
+namespace {
 
-static std::string StringVPrintf(const char* format, va_list args) {
+std::string StringVPrintf(const char* format, va_list args) {
   if (format == nullptr) {
     return "<null log format>";
   }
@@ -61,33 +54,15 @@ static std::string StringVPrintf(const char* format, va_list args) {
   return result;
 }
 
-static const char* GetFileBasename(const char* file) {
-  // We can't use basename(3) even on Unix because the Mac doesn't
-  // have a non-modifying basename.
+const char* GetFileBasename(const char* file) {
+  if (file == nullptr) {
+    return nullptr;
+  }
   const char* last_slash = strrchr(file, '/');
-  if (last_slash != nullptr) {
-    return last_slash + 1;
-  }
-  return file;
+  return last_slash == nullptr ? file : last_slash + 1;
 }
 
-static int32_t LogIdTolog_id_t(LogId log_id) {
-  switch (log_id) {
-    case MAIN:
-      return LOG_ID_MAIN;
-    case SYSTEM:
-      return LOG_ID_SYSTEM;
-    case RADIO:
-      return LOG_ID_RADIO;
-    case CRASH:
-      return LOG_ID_CRASH;
-    case DEFAULT:
-    default:
-      return LOG_ID_DEFAULT;
-  }
-}
-
-static int32_t LogSeverityToPriority(LogSeverity severity) {
+int32_t LogSeverityToPriority(LogSeverity severity) {
   switch (severity) {
     case VERBOSE:
       return ANDROID_LOG_VERBOSE;
@@ -106,212 +81,83 @@ static int32_t LogSeverityToPriority(LogSeverity severity) {
   }
 }
 
-static LogFunction& Logger() {
-  static auto& logger = *new LogFunction(LogdLogger());
-  return logger;
-}
-
-static AbortFunction& Aborter() {
-  static auto& aborter = *new AbortFunction(DefaultAborter);
-  return aborter;
-}
-
-// Only used for Q fallback.
-static std::recursive_mutex& TagLock() {
-  static auto& tag_lock = *new std::recursive_mutex();
-  return tag_lock;
-}
-
-static std::string* gDefaultTag;
-
-void SetDefaultTag(const std::string_view tag) {
-  std::lock_guard<std::recursive_mutex> lock(TagLock());
-  if (gDefaultTag != nullptr) {
-    delete gDefaultTag;
-    gDefaultTag = nullptr;
-  }
-  if (!tag.empty()) {
-    gDefaultTag = new std::string(tag);
-  }
-}
-
-static bool gInitialized = false;
-
-// Only used for Q fallback.
-// Do not pre-filter VERBOSE/DEBUG before liblog can apply per-tag properties.
-// Callers can still raise this process-local threshold with
-// SetMinimumLogSeverity().
-static std::atomic<LogSeverity> gMinimumLogSeverity{VERBOSE};
-
-void DefaultAborter(const char* abort_message) {
-  android_set_abort_message(abort_message);
-  abort();
-}
-
-static void LogdLogChunk(LogId id, LogSeverity severity, const char* tag,
-                         const char* message) {
-  int32_t lg_id = LogIdTolog_id_t(id);
-  int32_t priority = LogSeverityToPriority(severity);
-
-  __android_log_buf_print(lg_id, priority, tag, "%s", message);
-}
-
-LogdLogger::LogdLogger(LogId default_log_id)
-    : default_log_id_(default_log_id) {}
-
-void LogdLogger::operator()(LogId id, LogSeverity severity, const char* tag,
-                            const char* file, unsigned int line,
-                            const char* message) {
-  if (id == DEFAULT) {
-    id = default_log_id_;
-  }
-
-  SplitByLogdChunks(id, severity, tag, file, line, message, LogdLogChunk);
-}
-
-void InitLogging(const std::optional<std::string_view> default_tag,
-                 std::optional<LogSeverity> log_level, LogFunction&& logger,
-                 AbortFunction&& aborter) {
-  SetLogger(std::forward<LogFunction>(logger));
-  SetAborter(std::forward<AbortFunction>(aborter));
-
-  if (gInitialized) {
-    return;
-  }
-
-  gInitialized = true;
-
-  if (default_tag.has_value()) {
-    SetDefaultTag(default_tag.value());
-  }
-
-  const char* tags = getenv("ANDROID_LOG_TAGS");
-  if (tags == nullptr) {
-    return;
-  }
-
-  if (log_level.has_value()) {
-    SetMinimumLogSeverity(log_level.value());
-  }
-}
-
-LogFunction SetLogger(LogFunction&& logger) {
-  LogFunction old_logger = std::move(Logger());
-  Logger() = std::move(logger);
-  return old_logger;
-}
-
-AbortFunction SetAborter(AbortFunction&& aborter) {
-  AbortFunction old_aborter = std::move(Aborter());
-  Aborter() = std::move(aborter);
-  return old_aborter;
-}
-
-// This indirection greatly reduces the stack impact of having lots of
-// checks/logging in a function.
-class LogMessageData {
- public:
-  LogMessageData(const char* file, unsigned int line, LogSeverity severity,
-                 const char* tag, int error)
-      : file_(GetFileBasename(file)),
-        line_number_(line),
-        severity_(severity),
-        tag_(tag),
-        error_(error) {}
-
-  DISALLOW_COPY_AND_ASSIGN(LogMessageData);
-
-  const char* GetFile() const { return file_; }
-
-  unsigned int GetLineNumber() const { return line_number_; }
-
-  LogSeverity GetSeverity() const { return severity_; }
-
-  const char* GetTag() const { return tag_; }
-
-  int GetError() const { return error_; }
-
-  std::ostream& GetBuffer() { return buffer_; }
-
-  std::string ToString() const { return buffer_.str(); }
-
- private:
-  std::ostringstream buffer_;
-  const char* const file_;
-  const unsigned int line_number_;
-  const LogSeverity severity_;
-  const char* const tag_;
-  const int error_;
+struct DefaultTagState {
+  std::mutex mutex;
+  std::string tag;
 };
 
-LogMessage::LogMessage(const char* file, unsigned int line, LogId,
-                       LogSeverity severity, const char* tag, int error)
-    : LogMessage(file, line, severity, tag, error) {}
+DefaultTagState& GetDefaultTagState() {
+  // Logging can be called by other translation units during static teardown.
+  // Keep this small state alive for the process lifetime to avoid destructor
+  // ordering hazards in that phase.
+  static auto& state = *new DefaultTagState;
+  return state;
+}
 
-LogMessage::LogMessage(const char* file, unsigned int line,
-                       LogSeverity severity, const char* tag, int error)
-    : data_(new LogMessageData(file, line, severity, tag, error)) {}
-
-LogMessage::~LogMessage() {
-  // Check severity again. This is duplicate work wrt/ LOG macros, but not
-  // LOG_STREAM.
-  if (!WOULD_LOG(data_->GetSeverity())) {
-    return;
+std::string ResolveDefaultTag() {
+  auto& state = GetDefaultTagState();
+  std::lock_guard<std::mutex> lock(state.mutex);
+  if (!state.tag.empty()) {
+    return state.tag;
   }
 
-  // Finish constructing the message.
-  if (data_->GetError() != -1) {
-    data_->GetBuffer() << ": " << strerror(data_->GetError());
+  const char* process_name = getprogname();
+  return process_name == nullptr ? "ndk-samples" : process_name;
+}
+
+void LogdLogChunk(LogSeverity severity, const char* tag, const char* message) {
+  __android_log_buf_print(LOG_ID_MAIN, LogSeverityToPriority(severity), tag,
+                          "%s", message);
+}
+
+void EmitLog(LogSeverity severity, const char* tag, const char* file,
+             unsigned int line, std::string message) {
+  if (severity == FATAL) {
+    // Set the complete message before logd receives individual chunks.
+    android_set_abort_message(message.c_str());
   }
-  std::string msg(data_->ToString());
 
-  if (data_->GetSeverity() == FATAL) {
-    // Set the bionic abort message early to avoid liblog doing it
-    // with the individual lines, so that we get the whole message.
-    android_set_abort_message(msg.c_str());
+  const char* basename = GetFileBasename(file);
+  if (tag != nullptr) {
+    SplitByLogdChunks(severity, tag, basename, line, message.c_str(),
+                      LogdLogChunk);
+  } else {
+    const std::string default_tag = ResolveDefaultTag();
+    SplitByLogdChunks(severity, default_tag.c_str(), basename, line,
+                      message.c_str(), LogdLogChunk);
   }
 
-  LogLine(data_->GetFile(), data_->GetLineNumber(), data_->GetSeverity(),
-          data_->GetTag(), msg.c_str());
-
-  // Abort if necessary.
-  if (data_->GetSeverity() == FATAL) {
-    Aborter()(msg.c_str());
-    // A custom aborter is expected not to return. Keep the FATAL contract even
-    // if a misconfigured callback does return.
+  if (severity == FATAL) {
     abort();
   }
 }
 
-std::ostream& LogMessage::stream() { return data_->GetBuffer(); }
+}  // namespace
 
-void LogVPrint(LogSeverity severity, const char* tag, const char* file,
-               unsigned int line, const char* format, va_list args) {
-  LogMessage(file, line, severity, tag, -1).stream()
-      << StringVPrintf(format, args);
+void SetDefaultTag(const std::string_view tag) {
+  auto& state = GetDefaultTagState();
+  std::lock_guard<std::mutex> lock(state.mutex);
+  state.tag.assign(tag);
 }
 
 void LogPrint(LogSeverity severity, const char* tag, const char* file,
               unsigned int line, const char* format, ...) {
   va_list args;
   va_start(args, format);
-  LogVPrint(severity, tag, file, line, format, args);
+  std::string message = StringVPrintf(format, args);
   va_end(args);
-}
-
-void LogVPrintErrno(LogSeverity severity, const char* tag, const char* file,
-                    unsigned int line, int error, const char* format,
-                    va_list args) {
-  LogMessage(file, line, severity, tag, error).stream()
-      << StringVPrintf(format, args);
+  EmitLog(severity, tag, file, line, std::move(message));
 }
 
 void LogPrintErrno(LogSeverity severity, const char* tag, const char* file,
                    unsigned int line, int error, const char* format, ...) {
   va_list args;
   va_start(args, format);
-  LogVPrintErrno(severity, tag, file, line, error, format, args);
+  std::string message = StringVPrintf(format, args);
   va_end(args);
+  message.append(": ");
+  message.append(strerror(error));
+  EmitLog(severity, tag, file, line, std::move(message));
 }
 
 [[noreturn]] void CheckFailed(const char* condition, const char* tag,
@@ -319,45 +165,18 @@ void LogPrintErrno(LogSeverity severity, const char* tag, const char* file,
                               const char* format, ...) {
   va_list args;
   va_start(args, format);
-  const std::string message = StringVPrintf(format, args);
+  const std::string detail = StringVPrintf(format, args);
   va_end(args);
 
-  LogMessage(file, line, FATAL, tag, -1).stream()
-      << "Check failed: " << condition << ": " << message;
-  __builtin_unreachable();
+  std::string message = "Check failed: ";
+  message.append(condition == nullptr ? "<null condition>" : condition);
+  message.append(": ");
+  message.append(detail);
+  EmitLog(FATAL, tag, file, line, std::move(message));
+
+  // EmitLog(FATAL, ...) terminates. Preserve the noreturn contract if that
+  // implementation is ever changed incorrectly.
+  abort();
 }
-
-void LogMessage::LogLine(const char* file, unsigned int line,
-                         LogSeverity severity, const char* tag,
-                         const char* message) {
-  if (tag == nullptr) {
-    std::lock_guard<std::recursive_mutex> lock(TagLock());
-    if (gDefaultTag == nullptr) {
-      gDefaultTag = new std::string(getprogname());
-    }
-
-    Logger()(DEFAULT, severity, gDefaultTag->c_str(), file, line, message);
-  } else {
-    Logger()(DEFAULT, severity, tag, file, line, message);
-  }
-}
-
-LogSeverity GetMinimumLogSeverity() {
-  return gMinimumLogSeverity.load(std::memory_order_relaxed);
-}
-
-bool ShouldLog(LogSeverity severity, const char*) {
-  return severity >= gMinimumLogSeverity.load(std::memory_order_relaxed);
-}
-
-LogSeverity SetMinimumLogSeverity(LogSeverity new_severity) {
-  return gMinimumLogSeverity.exchange(new_severity, std::memory_order_relaxed);
-}
-
-ScopedLogSeverity::ScopedLogSeverity(LogSeverity new_severity) {
-  old_ = SetMinimumLogSeverity(new_severity);
-}
-
-ScopedLogSeverity::~ScopedLogSeverity() { SetMinimumLogSeverity(old_); }
 
 }  // namespace ndksamples::base

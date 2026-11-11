@@ -46,7 +46,7 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
-#include <base/macros.h>
+#include <iterator>
 
 typedef struct {
   int fd;
@@ -325,7 +325,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"rewindStreamingMediaPlayer", "()V",
        reinterpret_cast<void*>(RewindStreamingMediaPlayer)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,

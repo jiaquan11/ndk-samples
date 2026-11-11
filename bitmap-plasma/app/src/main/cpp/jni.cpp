@@ -1,7 +1,7 @@
 // Copyright (C) 2025 The Android Open Source Project
 // SPDX-License-Identifier: Apache-2.0
 
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 
 #include "plasma.h"
@@ -14,7 +14,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"renderPlasma", "(Landroid/graphics/Bitmap;J)V",
        reinterpret_cast<void*>(RenderPlasma)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {

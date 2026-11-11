@@ -16,7 +16,7 @@
 
 #include "gles3jni.h"
 
-#include <base/macros.h>
+#include <iterator>
 #include <jni.h>
 #include <stdlib.h>
 #include <string.h>
@@ -274,7 +274,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"resize", "(II)V", reinterpret_cast<void*>(Resize)},
       {"step", "()V", reinterpret_cast<void*>(Step)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* _Nonnull vm, void* _Nullable) {

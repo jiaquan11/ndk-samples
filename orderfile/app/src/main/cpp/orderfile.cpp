@@ -1,6 +1,6 @@
 #define LOG_TAG "orderfiledemo"
 #include <base/logging.h>
-#include <base/macros.h>
+#include <iterator>
 #include <errno.h>
 #include <jni.h>
 #include <linux/limits.h>
@@ -52,7 +52,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"runWorkload", "(Ljava/lang/String;)V",
        reinterpret_cast<void*>(RunWorkload)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,

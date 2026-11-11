@@ -15,10 +15,11 @@
  */
 #include "camera_manager.h"
 
+#include <ndksamples/camera/native_debug.h>
+
 #include <camera/NdkCameraManager.h>
 #include <media/NdkImage.h>
 #include <ndksamples/camera/camera_utils.h>
-#include <ndksamples/camera/native_debug.h>
 #include <unistd.h>
 
 #include <cinttypes>

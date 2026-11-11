@@ -19,7 +19,7 @@
 //--------------------------------------------------------------------------------
 #include <EGL/egl.h>
 #include <android_native_app_glue.h>
-#include <base/macros.h>
+#include <iterator>
 #include <dlfcn.h>
 
 #include <condition_variable>
@@ -620,7 +620,8 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"choregrapherCallback", "(J)V",
        reinterpret_cast<void*>(ChoregrapherCallback)},
   };
-  return env->RegisterNatives(c, methods, arraysize(methods));
+  return env->RegisterNatives(c, methods,
+                              static_cast<jint>(std::size(methods)));
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* _Nonnull vm,
