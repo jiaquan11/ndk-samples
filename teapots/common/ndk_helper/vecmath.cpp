@@ -1,18 +1,5 @@
-/*
- * Copy_right 2013 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * y_ou may_ not use this file ex_cept in compliance with the License.
- * You may_ obtain a copy_ of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by_ applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either ex_press or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2013 The Android Open Source Project
+// SPDX-License-Identifier: Apache-2.0
 
 //--------------------------------------------------------------------------------
 // vecmath.cpp
