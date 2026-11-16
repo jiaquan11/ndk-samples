@@ -20,6 +20,7 @@ get_filename_component(NDK_SAMPLES_ROOT
     "${CMAKE_CURRENT_SOURCE_DIR}/../../../../.." ABSOLUTE)
 set(BASE_CPP_DIR "${NDK_SAMPLES_ROOT}/base/src/main/cpp")
 set(BASE_TEST_DIR "${NDK_SAMPLES_ROOT}/base/src/test/cpp")
+set(BASE_BENCHMARK_DIR "${NDK_SAMPLES_ROOT}/base/src/benchmark/cpp")
 
 add_app_library(adder OBJECT adder.cpp)
 
@@ -42,3 +43,17 @@ target_link_libraries(app_tests
     googletest::gtest
     junit-gtest::junit-gtest
 )
+
+# 日志性能基准是独立的设备端可执行程序，不打入 APK，也不与正确性测试
+# 混合。它通过 Prefab 导入的 base::base 测量真实消费方的链接形态。
+add_executable(base_logging_benchmark
+    "${BASE_BENCHMARK_DIR}/base_logging_benchmark.cpp"
+)
+target_compile_features(base_logging_benchmark PRIVATE cxx_std_17)
+target_compile_options(base_logging_benchmark PRIVATE
+    -Wall
+    -Wextra
+    -Werror
+)
+target_include_directories(base_logging_benchmark PRIVATE "${BASE_CPP_DIR}")
+target_link_libraries(base_logging_benchmark PRIVATE base::base)

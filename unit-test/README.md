@@ -109,6 +109,22 @@ The `testOnly` rule packages `libapp_tests.so` only in the test APK. The
 application's `libunittest.so` remains independent of `base`; only the test
 target links `base::base`.
 
+## Base logging benchmark
+
+同一个 CMake 构建还提供独立的 `base_logging_benchmark` 设备端可执行程序。
+它复用 `base::base` 的 Prefab 消费链，但不打入 APK，也不与 GTest 正确性
+测试混合。完整方法、指标边界和结果入口见
+[`base/src/benchmark/README.md`](../base/src/benchmark/README.md)。
+
+连接一台 arm64 设备后，可从仓库根目录运行：
+
+```powershell
+.\base\src\benchmark\run_benchmark.ps1
+```
+
+真实 `liblog` 突发写入是可选层，需要显式增加 `-IncludeLogd`；默认只测量
+过滤、格式化和分片等库内路径。
+
 Finally, we need a wrapper in androidTest,
 [NativeTests.kt](app/src/androidTest/java/com/example/unittest/NativeTests.kt):
 

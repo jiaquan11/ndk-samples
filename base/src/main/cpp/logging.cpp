@@ -16,13 +16,17 @@
 #include <string>
 #include <utility>
 
+#include "logging_internal.h"
 #include "logging_splitters.h"
 
 namespace ndksamples::base {
+namespace internal {
 namespace {
 
 // 短日志优先在栈上完成格式化，避免每条日志都进行堆分配；容量包含末尾的 \0。
 constexpr std::size_t kStackFormatBufferSize = 512;
+
+}  // namespace
 
 // 使用 printf 规则把 va_list 格式化为字符串。短消息只执行一次格式化，
 // 超出栈缓冲区时再按精确长度分配字符串并执行第二次格式化。
@@ -68,6 +72,10 @@ std::string StringVPrintf(const char* format, va_list args) {
   result.resize(required_size);
   return result;
 }
+
+}  // namespace internal
+
+namespace {
 
 // __FILE__ 可能使用 Unix 或 Windows 路径分隔符。这里只返回原字符串中
 // 文件名部分的指针，不创建额外字符串。
@@ -146,8 +154,8 @@ void SetAbortMessage(const char* file, unsigned int line,
     return;
   }
 
-  const std::string abort_message = "[" + std::string(basename) + ":" +
-                                    std::to_string(line) + "] " + message;
+  const std::string abort_message =
+      "[" + std::string(basename) + ":" + std::to_string(line) + "] " + message;
   android_set_abort_message(abort_message.c_str());
 }
 
@@ -188,7 +196,7 @@ void LogPrint(LogSeverity severity, const char* tag, const char* file,
   detail::ErrnoRestorer errno_restorer;
   va_list args;
   va_start(args, format);
-  std::string message = StringVPrintf(format, args);
+  std::string message = internal::StringVPrintf(format, args);
   va_end(args);
   EmitLog(severity, tag, file, line, std::move(message));
 }
@@ -198,7 +206,7 @@ void CheckFailed(const char* condition, const char* tag, const char* file,
   // CHECKF 不受最低日志等级过滤：先格式化补充说明，再组合断言条件。
   va_list args;
   va_start(args, format);
-  const std::string detail = StringVPrintf(format, args);
+  const std::string detail = internal::StringVPrintf(format, args);
   va_end(args);
 
   std::string message = "Check failed: ";
