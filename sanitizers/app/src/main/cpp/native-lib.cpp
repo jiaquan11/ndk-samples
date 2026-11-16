@@ -1,6 +1,7 @@
 #include <iterator>
 #include <jni.h>
 
+#include <limits>
 #include <string>
 
 jstring StringFromJni(JNIEnv* env, jobject /* this */) {
@@ -11,10 +12,12 @@ jstring StringFromJni(JNIEnv* env, jobject /* this */) {
   *foo = 4;
 
   // Signed integer overflow. Undefined behavior caught by ubsan.
-  [[maybe_unused]] int k = 0x7fffffff;
-  k += 1;
+  int overflow_result = std::numeric_limits<int>::max();
+  overflow_result += 1;
 
-  std::string hello = "Hello from C++";
+  const std::string hello =
+      "Hello from C++ (overflow result: " + std::to_string(overflow_result) +
+      ")";
   return env->NewStringUTF(hello.c_str());
 }
 

@@ -203,12 +203,12 @@ SimpleGeom* AsciiArtToGeom(const char* art, float scale) {
   delete[] v;
 
   for (int i = 0; i < indices; i++) {
-    GEOM_DEBUG("indices[%d] = %d\n", i, indicesArray[i]);
+    GEOM_DEBUG("indices[%d] = %d", i, indicesArray[i]);
   }
   for (int i = 0; i < vertices; i++) {
     GEOM_DEBUG("vertices[%d]", i * 7);
     for (int j = 0; j < 7; j++) {
-      GEOM_DEBUG("vertices[%d+%d=%d] = %f\n", i * 7, j, i * 7 + j,
+      GEOM_DEBUG("vertices[%d+%d=%d] = %f", i * 7, j, i * 7 + j,
                  verticesArray[i * 7 + j]);
     }
   }

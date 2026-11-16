@@ -23,8 +23,7 @@
 
 #include "AssetUtil.h"
 
-#define MODULE_NAME "Teapot::Texture"
-#define LOG_TAG MODULE_NAME
+#define LOG_TAG "TeapotTexture.Texture"
 #include <base/logging.h>
 
 /**

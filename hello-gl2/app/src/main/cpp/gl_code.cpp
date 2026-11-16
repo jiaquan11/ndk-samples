@@ -28,12 +28,12 @@
 
 static void printGLString(const char* name, GLenum s) {
   const char* v = (const char*)glGetString(s);
-  LOGI("GL %s = %s\n", name, v);
+  LOGI("GL %s = %s", name, v);
 }
 
 static void checkGlError(const char* op) {
   for (GLint error = glGetError(); error; error = glGetError()) {
-    LOGI("after %s() glError (0x%x)\n", op, error);
+    LOGI("after %s() glError (0x%x)", op, error);
   }
 }
 
@@ -63,7 +63,7 @@ GLuint loadShader(GLenum shaderType, const char* pSource) {
         char* buf = (char*)malloc(infoLen);
         if (buf) {
           glGetShaderInfoLog(shader, infoLen, NULL, buf);
-          LOGE("Could not compile shader %d:\n%s\n", shaderType, buf);
+          LOGE("Could not compile shader %d:\n%s", shaderType, buf);
           free(buf);
         }
         glDeleteShader(shader);
@@ -101,7 +101,7 @@ GLuint createProgram(const char* pVertexSource, const char* pFragmentSource) {
         char* buf = (char*)malloc(bufLength);
         if (buf) {
           glGetProgramInfoLog(program, bufLength, NULL, buf);
-          LOGE("Could not link program:\n%s\n", buf);
+          LOGE("Could not link program:\n%s", buf);
           free(buf);
         }
       }
@@ -129,7 +129,7 @@ bool setupGraphics(int w, int h) {
   }
   gvPositionHandle = glGetAttribLocation(gProgram, "vPosition");
   checkGlError("glGetAttribLocation");
-  LOGI("glGetAttribLocation(\"vPosition\") = %d\n", gvPositionHandle);
+  LOGI("glGetAttribLocation(\"vPosition\") = %d", gvPositionHandle);
 
   glViewport(0, 0, w, h);
   checkGlError("glViewport");

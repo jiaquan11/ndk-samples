@@ -193,16 +193,16 @@ short* createResampledBuf(uint32_t idx, uint32_t srcRate, unsigned* size) {
 }
 
 // this callback handler is called every time a buffer finishes playing
-void bqPlayerCallback([[maybe_unused]] SLAndroidSimpleBufferQueueItf bq,
-                      void*) {
-  assert(bq == bqPlayerBufferQueue);
+void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void*) {
+  if (bq != bqPlayerBufferQueue) {
+    abort();
+  }
   // for streaming playback, replace this test by logic to find and fill the
   // next buffer
   if (--nextCount > 0 && NULL != nextBuffer && 0 != nextSize) {
     SLresult result;
     // enqueue another buffer
-    result = (*bqPlayerBufferQueue)
-                 ->Enqueue(bqPlayerBufferQueue, nextBuffer, nextSize);
+    result = (*bq)->Enqueue(bq, nextBuffer, nextSize);
     // the most likely other result is SL_RESULT_BUFFER_INSUFFICIENT,
     // which for this code example would indicate a programming error
     if (SL_RESULT_SUCCESS != result) {
@@ -216,9 +216,10 @@ void bqPlayerCallback([[maybe_unused]] SLAndroidSimpleBufferQueueItf bq,
 }
 
 // this callback handler is called every time a buffer finishes recording
-void bqRecorderCallback([[maybe_unused]] SLAndroidSimpleBufferQueueItf bq,
-                        void*) {
-  assert(bq == recorderBufferQueue);
+void bqRecorderCallback(SLAndroidSimpleBufferQueueItf bq, void*) {
+  if (bq != recorderBufferQueue) {
+    abort();
+  }
   // for streaming recording, here we would call Enqueue to give recorder the
   // next buffer to fill but instead, this is a one-time buffer so we stop
   // recording

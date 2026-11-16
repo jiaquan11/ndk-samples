@@ -34,7 +34,7 @@ const Vertex QUAD[4] = {
 bool checkGlError(const char* funcName) {
   GLint err = glGetError();
   if (err != GL_NO_ERROR) {
-    LOGE("GL error after %s(): 0x%08x\n", funcName, err);
+    LOGE("GL error after %s(): 0x%08x", funcName, err);
     return true;
   }
   return false;
@@ -58,7 +58,7 @@ GLuint createShader(GLenum shaderType, const char* src) {
       GLchar* infoLog = (GLchar*)malloc(infoLogLen);
       if (infoLog) {
         glGetShaderInfoLog(shader, infoLogLen, NULL, infoLog);
-        LOGE("Could not compile %s shader:\n%s\n",
+        LOGE("Could not compile %s shader:\n%s",
              shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment", infoLog);
         free(infoLog);
       }
@@ -100,7 +100,7 @@ GLuint createProgram(const char* vtxSrc, const char* fragSrc) {
       GLchar* infoLog = (GLchar*)malloc(infoLogLen);
       if (infoLog) {
         glGetProgramInfoLog(program, infoLogLen, NULL, infoLog);
-        LOGE("Could not link program:\n%s\n", infoLog);
+        LOGE("Could not link program:\n%s", infoLog);
         free(infoLog);
       }
     }
@@ -116,7 +116,7 @@ exit:
 
 static void printGlString(const char* name, GLenum s) {
   const char* v = (const char*)glGetString(s);
-  LOGV("GL %s: %s\n", name, v);
+  LOGV("GL %s: %s", name, v);
 }
 
 // ----------------------------------------------------------------------------

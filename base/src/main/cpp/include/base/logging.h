@@ -1,46 +1,23 @@
-/*
- * Copyright (C) 2015 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright (C) 2015 The Android Open Source Project
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-/**
- * @file logging.h
- * @brief Project-wide printf-style Android logging and assertions.
- *
- * Define LOG_TAG before including this header to use a fixed tag for the
- * translation unit. Without LOG_TAG, logging uses the tag configured by
- * SetDefaultTag(), or the process name when no custom tag has been set.
- *
- * LOGF writes at Android's fatal priority without terminating. CHECKF writes a
- * fatal assertion message and terminates the process.
- *
- * The public logging interface requires C++17 or newer.
- */
-
 #include <cerrno>
-#include <string_view>
 
-// Note: DO NOT USE DIRECTLY. Use LOG_TAG instead.
-#ifdef _LOG_TAG_INTERNAL
-#error "_LOG_TAG_INTERNAL must not be defined"
+// LOG_TAG 是调用方唯一允许配置的源码级 Tag。该内部转接宏由本头文件统一
+// 管理，后续供 LOG*/CHECKF 使用；若外部提前定义，立即报错，避免
+// 调用方绕过公开配置入口并改变内部语义。
+#ifdef NDKSAMPLES_LOG_TAG_INTERNAL
+#error "NDKSAMPLES_LOG_TAG_INTERNAL must not be defined"
 #endif
+
+// 调用单元可以在首次包含本头文件前定义 LOG_TAG。未定义时传入 nullptr，
+// 由后端依次使用进程名和 "ndk-samples" 作为防御兜底 Tag。
 #ifdef LOG_TAG
-#define _LOG_TAG_INTERNAL LOG_TAG
+#define NDKSAMPLES_LOG_TAG_INTERNAL LOG_TAG
 #else
-#define _LOG_TAG_INTERNAL nullptr
+#define NDKSAMPLES_LOG_TAG_INTERNAL nullptr
 #endif
 
 namespace ndksamples::base {
@@ -51,46 +28,57 @@ enum LogSeverity {
   INFO,
   WARNING,
   ERROR,
-  FATAL_WITHOUT_ABORT,
   FATAL,
 };
 
-// An empty tag clears the custom value and restores the process-name fallback.
-void SetDefaultTag(std::string_view tag);
+// 设置当前链接映像允许输出的最低日志等级，默认值为 VERBOSE。超出枚举
+// 有效范围的值会被限制到 VERBOSE～FATAL。
+// 普通 LOG 宏会在 Tag 和格式化参数求值前检查该阈值，CHECKF 不受
+// 普通过滤规则影响。
+void SetMinimumLogSeverity(LogSeverity severity) noexcept;
 
+// 原子读取并返回当前链接映像正在使用的最低日志等级。
+LogSeverity GetMinimumLogSeverity() noexcept;
+
+// 判断指定等级当前是否允许输出。该接口使用原子状态，可被多个线程并发
+// 调用；包括 LOGF 在内的普通日志统一按照最低等级判断。
+bool IsLoggable(LogSeverity severity) noexcept;
+
+// 将自定义日志函数标记为 printf 风格接口，使 Clang/GCC 在编译期检查
+// 格式占位符与可变参数是否匹配。两个参数都是从 1 开始的函数参数序号：
+// format_index 指向格式字符串，first_argument 指向第一个可变参数。
 #if defined(__clang__) || defined(__GNUC__)
 #define NDKSAMPLES_PRINTF_FORMAT(format_index, first_argument) \
   __attribute__((format(printf, format_index, first_argument)))
 #else
+// 其他编译器不支持 GNU format 属性时只跳过静态检查，不影响函数声明和运行。
 #define NDKSAMPLES_PRINTF_FORMAT(format_index, first_argument)
 #endif
 
-// Callers should normally use the macros below so file, line and LOG_TAG are
-// captured automatically.
 void LogPrint(LogSeverity severity, const char* tag, const char* file,
               unsigned int line, const char* format, ...)
     NDKSAMPLES_PRINTF_FORMAT(5, 6);
-void LogPrintErrno(LogSeverity severity, const char* tag, const char* file,
-                   unsigned int line, int error, const char* format, ...)
-    NDKSAMPLES_PRINTF_FORMAT(6, 7);
 
-// Use CHECKF rather than calling this function directly.
-[[noreturn]] void CheckFailed(const char* condition, const char* tag,
-                              const char* file, unsigned int line,
-                              const char* format, ...)
+// 由 CHECKF 宏统一调用，不应绕过宏直接使用。
+void CheckFailed(const char* condition, const char* tag, const char* file,
+                 unsigned int line, const char* format, ...)
     NDKSAMPLES_PRINTF_FORMAT(5, 6);
 
+// 该宏只服务于以上函数声明；属性展开后立即清理，避免污染包含方的宏环境。
 #undef NDKSAMPLES_PRINTF_FORMAT
 
 namespace detail {
 
-// Logging must not unexpectedly change errno in the caller. PLOG macros also
-// capture this saved value and append its text to the message.
+// errno 是 <cerrno> 提供的当前线程错误状态入口。该对象在调用线程中构造时，
+// 无需外部传参即可保存线程此刻的 errno；离开局部作用域时由析构函数自动恢复。
+// LOG* 只依赖对象生命周期完成保存和恢复；saved_errno() 供需要在同一保护
+// 范围内重新读取原始错误码的内部格式化逻辑使用。
 class ErrnoRestorer {
  public:
   ErrnoRestorer() : saved_errno_(errno) {}
   ~ErrnoRestorer() { errno = saved_errno_; }
 
+  // 禁止复制，避免同一个保护范围出现多个负责恢复 errno 的对象。
   ErrnoRestorer(const ErrnoRestorer&) = delete;
   ErrnoRestorer& operator=(const ErrnoRestorer&) = delete;
 
@@ -106,43 +94,13 @@ class ErrnoRestorer {
 
 #define NDKSAMPLES_LOG_PRINT(severity_value, tag_value, ...)              \
   do {                                                                    \
-    [[maybe_unused]] ::ndksamples::base::detail::ErrnoRestorer            \
-        ndksamples_errno_restorer_;                                       \
+    ::ndksamples::base::detail::ErrnoRestorer ndksamples_errno_restorer_; \
     const auto ndksamples_log_severity_ = (severity_value);               \
-    const char* const ndksamples_log_tag_ = (tag_value);                  \
-    ::ndksamples::base::LogPrint(ndksamples_log_severity_,                \
-                                 ndksamples_log_tag_, __FILE__, __LINE__, \
-                                 __VA_ARGS__);                            \
+    if (::ndksamples::base::IsLoggable(ndksamples_log_severity_)) {       \
+      ::ndksamples::base::LogPrint(ndksamples_log_severity_, (tag_value), \
+                                   __FILE__, __LINE__, __VA_ARGS__);       \
+    }                                                                     \
   } while (false)
-
-#define NDKSAMPLES_PLOG_PRINT(severity_value, tag_value, ...)              \
-  do {                                                                     \
-    [[maybe_unused]] ::ndksamples::base::detail::ErrnoRestorer             \
-        ndksamples_errno_restorer_;                                        \
-    const auto ndksamples_log_severity_ = (severity_value);                \
-    const char* const ndksamples_log_tag_ = (tag_value);                   \
-    ::ndksamples::base::LogPrintErrno(                                     \
-        ndksamples_log_severity_, ndksamples_log_tag_, __FILE__, __LINE__, \
-        ndksamples_errno_restorer_.saved_errno(), __VA_ARGS__);            \
-  } while (false)
-
-#define LOGV(...)                                                      \
-  NDKSAMPLES_LOG_PRINT(::ndksamples::base::VERBOSE, _LOG_TAG_INTERNAL, \
-                       __VA_ARGS__)
-#define LOGD(...)                                                    \
-  NDKSAMPLES_LOG_PRINT(::ndksamples::base::DEBUG, _LOG_TAG_INTERNAL, \
-                       __VA_ARGS__)
-#define LOGI(...) \
-  NDKSAMPLES_LOG_PRINT(::ndksamples::base::INFO, _LOG_TAG_INTERNAL, __VA_ARGS__)
-#define LOGW(...)                                                      \
-  NDKSAMPLES_LOG_PRINT(::ndksamples::base::WARNING, _LOG_TAG_INTERNAL, \
-                       __VA_ARGS__)
-#define LOGE(...)                                                    \
-  NDKSAMPLES_LOG_PRINT(::ndksamples::base::ERROR, _LOG_TAG_INTERNAL, \
-                       __VA_ARGS__)
-#define LOGF(...)                                               \
-  NDKSAMPLES_LOG_PRINT(::ndksamples::base::FATAL_WITHOUT_ABORT, \
-                       _LOG_TAG_INTERNAL, __VA_ARGS__)
 
 #define LOGV_TAG(tag, ...) \
   NDKSAMPLES_LOG_PRINT(::ndksamples::base::VERBOSE, tag, __VA_ARGS__)
@@ -154,33 +112,23 @@ class ErrnoRestorer {
   NDKSAMPLES_LOG_PRINT(::ndksamples::base::WARNING, tag, __VA_ARGS__)
 #define LOGE_TAG(tag, ...) \
   NDKSAMPLES_LOG_PRINT(::ndksamples::base::ERROR, tag, __VA_ARGS__)
-#define LOGF_TAG(tag, ...)                                           \
-  NDKSAMPLES_LOG_PRINT(::ndksamples::base::FATAL_WITHOUT_ABORT, tag, \
-                       __VA_ARGS__)
+// LOGF 使用 Android Fatal 优先级记录日志，但不会自动终止进程；
+// 条件失败后必须终止时，应使用 CHECKF。
+#define LOGF_TAG(tag, ...) \
+  NDKSAMPLES_LOG_PRINT(::ndksamples::base::FATAL, tag, __VA_ARGS__)
 
-#define PLOGV(...)                                                      \
-  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::VERBOSE, _LOG_TAG_INTERNAL, \
-                        __VA_ARGS__)
-#define PLOGD(...)                                                    \
-  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::DEBUG, _LOG_TAG_INTERNAL, \
-                        __VA_ARGS__)
-#define PLOGI(...)                                                   \
-  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::INFO, _LOG_TAG_INTERNAL, \
-                        __VA_ARGS__)
-#define PLOGW(...)                                                      \
-  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::WARNING, _LOG_TAG_INTERNAL, \
-                        __VA_ARGS__)
-#define PLOGE(...)                                                    \
-  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::ERROR, _LOG_TAG_INTERNAL, \
-                        __VA_ARGS__)
-#define PLOGF(...)                                               \
-  NDKSAMPLES_PLOG_PRINT(::ndksamples::base::FATAL_WITHOUT_ABORT, \
-                        _LOG_TAG_INTERNAL, __VA_ARGS__)
+#define LOGV(...) LOGV_TAG(NDKSAMPLES_LOG_TAG_INTERNAL, __VA_ARGS__)
+#define LOGD(...) LOGD_TAG(NDKSAMPLES_LOG_TAG_INTERNAL, __VA_ARGS__)
+#define LOGI(...) LOGI_TAG(NDKSAMPLES_LOG_TAG_INTERNAL, __VA_ARGS__)
+#define LOGW(...) LOGW_TAG(NDKSAMPLES_LOG_TAG_INTERNAL, __VA_ARGS__)
+#define LOGE(...) LOGE_TAG(NDKSAMPLES_LOG_TAG_INTERNAL, __VA_ARGS__)
+#define LOGF(...) LOGF_TAG(NDKSAMPLES_LOG_TAG_INTERNAL, __VA_ARGS__)
 
 #define CHECKF(condition, ...)                                                 \
   do {                                                                         \
     if (!(condition)) {                                                        \
-      ::ndksamples::base::CheckFailed(#condition, _LOG_TAG_INTERNAL, __FILE__, \
-                                      __LINE__, __VA_ARGS__);                  \
+      ::ndksamples::base::CheckFailed(                                        \
+          #condition, NDKSAMPLES_LOG_TAG_INTERNAL, __FILE__, __LINE__,         \
+          __VA_ARGS__);                                                       \
     }                                                                          \
   } while (false)

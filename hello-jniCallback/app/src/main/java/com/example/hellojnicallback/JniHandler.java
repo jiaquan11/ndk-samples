@@ -1,36 +1,14 @@
-/*
- * Copyright (C) 2016 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+// Copyright (C) 2016 The Android Open Source Project
+// SPDX-License-Identifier: Apache-2.0
+
 package com.example.hellojnicallback;
 
 import android.os.Build;
 import androidx.annotation.Keep;
 import android.util.Log;
 
-/*
- * A helper class to demo that JNI could call into:
- *     private non-static function
- *     public non-static function
- *     static public function
- * The calling code is inside hello-jnicallback.c
- */
 public class JniHandler {
-    /*
-     * Print out status to logcat
-     */
+    // 这些方法由 JNI 按名称查找；@Keep 防止压缩和混淆破坏回调契约。
     @Keep
     private void updateStatus(String msg) {
         if (msg.toLowerCase().contains("error")) {
@@ -40,17 +18,11 @@ public class JniHandler {
         }
     }
 
-    /*
-     * Return OS build version: a static function
-     */
     @Keep
     static public String getBuildVersion() {
         return Build.VERSION.RELEASE;
     }
 
-    /*
-     * Return Java memory info
-     */
     @Keep
     public long getRuntimeMemorySize() {
         return Runtime.getRuntime().freeMemory();

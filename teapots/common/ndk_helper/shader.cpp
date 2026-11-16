@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define LOG_TAG "NdkHelper.Shader"
+
 #include "shader.h"
 
 #include <EGL/egl.h>
@@ -140,7 +142,7 @@ bool shader::LinkProgram(const GLuint prog) {
 
   glGetProgramiv(prog, GL_LINK_STATUS, &status);
   if (status == 0) {
-    LOGI("Program link failed\n");
+    LOGI("Program link failed");
     return false;
   }
 

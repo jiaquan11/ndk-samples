@@ -1,19 +1,6 @@
-/*
- * Copyright (C) 2016 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+// Copyright (C) 2016 The Android Open Source Project
+// SPDX-License-Identifier: Apache-2.0
+
 #define LOG_TAG "hello-jniCallback"
 #include <base/logging.h>
 #include <iterator>
@@ -22,7 +9,7 @@
 #include <pthread.h>
 #include <string.h>
 
-// processing callback to handler class
+// 保存 Native 工作线程回调 Java 所需的 VM、全局引用、方法 ID 和同步状态。
 typedef struct tick_context {
   JavaVM* javaVM;
   jclass jniHandlerClz;
@@ -31,8 +18,8 @@ typedef struct tick_context {
   jobject mainActivityObj;
   jmethodID updateStatusMethod;
   jmethodID updateTimerMethod;
-  // Activity lifecycle calls StartTicks/StopTicks serially on the main thread;
-  // this lock protects the state shared with the detached worker thread.
+  // Activity 生命周期在主线程调用 StartTicks/StopTicks；互斥量和条件变量
+  // 保护它们与分离式工作线程共同访问的运行状态。
   pthread_mutex_t lock;
   pthread_cond_t condition;
   int syncInitialized;
@@ -41,12 +28,6 @@ typedef struct tick_context {
 } TickContext;
 TickContext g_ctx;
 
-/* This is a trivial JNI example where we use a native method
- * to return a new VM String. See the corresponding Java source
- * file located at:
- *
- *   hello-jniCallback/app/src/main/java/com/example/hellojnicallback/MainActivity.java
- */
 jstring StringFromJni(JNIEnv* env, jobject) {
 #if defined(__arm__)
 #if defined(__ARM_ARCH_7A__)
@@ -70,7 +51,7 @@ jstring StringFromJni(JNIEnv* env, jobject) {
 #define ABI "x86"
 #elif defined(__x86_64__)
 #define ABI "x86_64"
-#elif defined(__mips64) /* mips64el-* toolchain defines __mips__ too */
+#elif defined(__mips64) /* mips64el-* 工具链也会定义 __mips__ */
 #define ABI "mips64"
 #elif defined(__mips__)
 #define ABI "mips"
@@ -82,20 +63,9 @@ jstring StringFromJni(JNIEnv* env, jobject) {
   return env->NewStringUTF("Hello from JNI !  Compiled with ABI " ABI ".");
 }
 
-/*
- *  A helper function to show how to call
- *     java static functions JniHandler::getBuildVersion()
- *     java non-static function JniHandler::getRuntimeMemorySize()
- *  The trivial implementation for these functions are inside file
- *     JniHandler.java
- */
 static bool QueryRuntimeInfo(JNIEnv* env, jobject instance) {
-  // Find out which OS we are running on. It does not matter for this app
-  // just to demo how to call static functions.
-  // Our java JniHandler class id and instance are initialized when this
-  // shared lib got loaded, we just directly use them
-  //    static function does not need instance, so we just need to feed
-  //    class and method id to JNI
+  // 演示调用 JniHandler 的静态方法和实例方法；类与对象全局引用已在
+  // JNI_OnLoad 阶段完成初始化。
   jmethodID versionFunc = env->GetStaticMethodID(
       g_ctx.jniHandlerClz, "getBuildVersion", "()Ljava/lang/String;");
   if (!versionFunc) {
@@ -119,11 +89,8 @@ static bool QueryRuntimeInfo(JNIEnv* env, jobject instance) {
   LOGI("Android Version - %s", version);
   env->ReleaseStringUTFChars(buildVersion, version);
 
-  // we are called from JNI_OnLoad, so got to release LocalRef to avoid leaking
   env->DeleteLocalRef(buildVersion);
 
-  // Query available memory size from a non-static public function
-  // we need use an instance of JniHandler class to call JNI
   jmethodID memFunc =
       env->GetMethodID(g_ctx.jniHandlerClz, "getRuntimeMemorySize", "()J");
   if (!memFunc) {
@@ -138,15 +105,9 @@ static bool QueryRuntimeInfo(JNIEnv* env, jobject instance) {
   }
 
   LOGI("Runtime free memory size: %" PRId64, result);
-  (void)result;  // silence the compiler warning
   return true;
 }
 
-/*
- * A helper function to wrap java JniHandler::updateStatus(String msg)
- * JNI allow us to call this function via an instance even it is
- * private function.
- */
 static bool ReportAndClearJavaException(JNIEnv* env, const char* operation) {
   if (!env->ExceptionCheck()) return false;
 
@@ -184,8 +145,8 @@ static void ReleaseMainActivityReferences(JNIEnv* env) {
 }
 
 static bool InitializeMainActivityCallbacks(JNIEnv* env, jobject instance) {
-  // Resolve callbacks before creating the pthread so lookup failures can
-  // return to the Java caller with their original pending exception.
+  // 在创建 pthread 前解析全部回调；查找失败时可以把原始待处理异常直接
+  // 返回给 Java 调用方，不让半初始化线程继续运行。
   jclass mainActivityClass = env->GetObjectClass(instance);
   if (mainActivityClass == nullptr) {
     LOGE("Failed to get MainActivity class");
@@ -267,12 +228,9 @@ static bool IsTickerStopRequested(TickContext* context) {
   return stopRequested;
 }
 
-/*
- * Main working thread function. From a pthread,
- *     calling back to MainActivity::updateTimer() to display ticks on UI
- *     calling back to JniHandler::updateStatus(String msg) for msg
- */
 void* UpdateTicks(void* context) {
+  // Native 工作线程先获取本线程专属 JNIEnv，再安全调用 Java 回调；退出时
+  // 只分离由本线程主动附加的 JNI 环境。
   TickContext* pctx = static_cast<TickContext*>(context);
   JavaVM* javaVM = pctx->javaVM;
   JNIEnv* env;
@@ -338,9 +296,7 @@ void* UpdateTicks(void* context) {
   return context;
 }
 
-/*
- * Interface to Java side to start ticks, caller is from onResume()
- */
+// Java onResume() 调用该入口创建计时线程和回调所需的全局引用。
 void StartTicks(JNIEnv* env, jobject instance) {
   if (g_ctx.syncInitialized) {
     LOGE("Ticker thread is already initialized");
@@ -405,12 +361,9 @@ void StartTicks(JNIEnv* env, jobject instance) {
   }
 }
 
-/*
- * Interface to Java side to stop ticks:
- *    we need to hold and make sure our native thread has finished before return
- *    for a clean shutdown. The caller is from onPause
- */
 void StopTicks(JNIEnv* env, jobject) {
+  // Java onPause() 请求停止，并等待分离式工作线程通过条件变量报告退出，
+  // 随后才释放回调引用和同步对象。
   if (!g_ctx.syncInitialized) {
     ReleaseMainActivityReferences(env);
     return;
@@ -423,8 +376,8 @@ void StopTicks(JNIEnv* env, jobject) {
   }
 
   g_ctx.stopRequested = 1;
-  // The worker also reaches this state after a callback exception, so the
-  // predicate prevents a missed notification from becoming a deadlock.
+  // 工作线程遇到 Java 回调异常时也会进入结束状态；循环检查谓词可以避免
+  // 因通知早于等待发生而造成死锁。
   while (g_ctx.running) {
     result = pthread_cond_wait(&g_ctx.condition, &g_ctx.lock);
     if (result != 0) {
@@ -523,25 +476,16 @@ static bool InitializeJniHandler(JNIEnv* env) {
   return true;
 }
 
-/*
- * processing one time initialization:
- *     Cache the javaVM into our context
- *     Register native methods
- *     Find class ID for JniHandler
- *     Create an instance of JniHandler
- *     Make global reference since we are using them from a native thread
- * Note:
- *     Global references on the success path live for the process lifetime;
- *     partially initialized references are released before JNI_OnLoad fails.
- *     The pairing function JNI_OnUnload() never gets called at all.
- */
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
+  // 加载阶段完成动态注册与长期回调引用初始化。成功路径中的全局引用按进程
+  // 生命周期保留，本示例没有 JNI_OnUnload；失败路径会回滚已创建的全局引用
+  // 并返回 JNI_ERR。
   JNIEnv* env;
   memset(&g_ctx, 0, sizeof(g_ctx));
 
   g_ctx.javaVM = vm;
   if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
-    return JNI_ERR;  // JNI version not supported.
+    return JNI_ERR;  // 当前虚拟机不支持请求的 JNI 版本。
   }
 
   const jint registration_result = RegisterNativeMethods(env);

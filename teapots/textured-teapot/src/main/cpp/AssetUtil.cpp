@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <cmath>
 
-#define LOG_TAG "NDK_Sample"
+#define LOG_TAG "TeapotTexture.Asset"
 #include <base/logging.h>
 
 #define IS_LOW_CHAR(c) ((c) >= 'a' && (c) <= 'z')

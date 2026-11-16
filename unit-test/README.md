@@ -38,8 +38,10 @@ TEST(adder, adder) { EXPECT_EQ(3, add(1, 2)); }
 
 [`base_logging_test.cpp`](../base/src/test/cpp/base_logging_test.cpp) covers the
 logging splitter's empty message, leading and repeated empty lines, multiline,
-payload-boundary and fatal-prefix cases, and verifies that the public
-printf-style logging macros restore `errno`.
+payload-boundary and source-prefix cases. It also covers lossless oversized-line
+splitting, UTF-8 boundaries, oversized Tag and source fallbacks, minimum-severity
+short-circuiting, temporary explicit Tags, long formatting and `errno`
+restoration.
 
 ## Building and running the tests
 

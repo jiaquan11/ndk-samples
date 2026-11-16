@@ -1,16 +1,13 @@
 #define LOG_TAG "orderfiledemo"
 #include <base/logging.h>
-#include <iterator>
-#include <errno.h>
 #include <jni.h>
 #include <linux/limits.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
+
+#include <iterator>
 
 #ifdef GENERATE_PROFILES
-extern "C" int __llvm_profile_set_filename(const char*);
-extern "C" int __llvm_profile_initialize_file(void);
-extern "C" int __llvm_profile_dump(void);
+#include <profile/instr_prof_interface.h>
 #endif
 
 void DumpProfileDataIfNeeded(const char* temp_dir) {
@@ -18,23 +15,17 @@ void DumpProfileDataIfNeeded(const char* temp_dir) {
   char profile_location[PATH_MAX] = {};
   snprintf(profile_location, sizeof(profile_location), "%s/demo.profraw",
            temp_dir);
-  if (__llvm_profile_set_filename(profile_location) == -1) {
-    PLOGE("__llvm_profile_set_filename(\"%s\") failed", profile_location);
-    return;
-  }
+  // 文件名设置没有返回值；dump 提供可检查的写入结果。
+  __llvm_profile_set_filename(profile_location);
 
-  if (__llvm_profile_initialize_file() == -1) {
-    PLOGE("__llvm_profile_initialize_file failed");
-    return;
-  }
-
-  if (__llvm_profile_dump() == -1) {
-    PLOGE("__llvm_profile_dump() failed");
+  const int dump_result = __llvm_profile_dump();
+  if (dump_result != 0) {
+    LOGE("__llvm_profile_dump() failed, result=%d", dump_result);
     return;
   }
   LOGD("Wrote profile data to %s", profile_location);
 #else
-  (void)temp_dir; // To avoid unused-parameter warning
+  (void)temp_dir;  // 避免未使用参数警告。
   LOGD("Did not write profile data because the app was not built for profile "
        "generation");
 #endif

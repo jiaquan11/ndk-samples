@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define LOG_TAG "TeapotMore.Renderer"
+
 //--------------------------------------------------------------------------------
 // MoreTeapotsRenderer.cpp
 // Render teapots

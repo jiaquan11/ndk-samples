@@ -299,7 +299,7 @@ static void stats_endFrame(Stats* s) {
 
       LOGI(
           "frame/s (avg,min,max) = (%.1f,%.1f,%.1f) "
-          "render time ms (avg,min,max) = (%.1f,%.1f,%.1f)\n",
+          "render time ms (avg,min,max) = (%.1f,%.1f,%.1f)",
           1000. / avgFrame, 1000. / maxFrame, 1000. / minFrame, avgRender,
           minRender, maxRender);
     }

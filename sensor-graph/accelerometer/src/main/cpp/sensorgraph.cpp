@@ -117,13 +117,14 @@ class sensorgraph {
     accelerometerEventQueue = ASensorManager_createEventQueue(
         sensorManager, looper, LOOPER_ID_USER, NULL, NULL);
     assert(accelerometerEventQueue != NULL);
-    auto status =
+    const int enable_status =
         ASensorEventQueue_enableSensor(accelerometerEventQueue, accelerometer);
-    assert(status >= 0);
-    status = ASensorEventQueue_setEventRate(
+    CHECKF(enable_status >= 0, "Failed to enable accelerometer: %d",
+           enable_status);
+    const int rate_status = ASensorEventQueue_setEventRate(
         accelerometerEventQueue, accelerometer, SENSOR_REFRESH_PERIOD_US);
-    assert(status >= 0);
-    (void)status;  // to silent unused compiler warning
+    CHECKF(rate_status >= 0, "Failed to set accelerometer event rate: %d",
+           rate_status);
 
     generateXPos();
   }
@@ -238,14 +239,20 @@ class sensorgraph {
   }
 
   void pause() {
-    ASensorEventQueue_disableSensor(accelerometerEventQueue, accelerometer);
+    const int status =
+        ASensorEventQueue_disableSensor(accelerometerEventQueue, accelerometer);
+    CHECKF(status >= 0, "Failed to disable accelerometer: %d", status);
   }
 
   void resume() {
-    ASensorEventQueue_enableSensor(accelerometerEventQueue, accelerometer);
-    [[maybe_unused]] auto status = ASensorEventQueue_setEventRate(
+    const int enable_status =
+        ASensorEventQueue_enableSensor(accelerometerEventQueue, accelerometer);
+    CHECKF(enable_status >= 0, "Failed to enable accelerometer: %d",
+           enable_status);
+    const int rate_status = ASensorEventQueue_setEventRate(
         accelerometerEventQueue, accelerometer, SENSOR_REFRESH_PERIOD_US);
-    assert(status >= 0);
+    CHECKF(rate_status >= 0, "Failed to set accelerometer event rate: %d",
+           rate_status);
   }
 };
 
