@@ -1,4 +1,6 @@
 plugins {
+    // 本地 Application 约定插件会应用官方 Android Application 插件，
+    // 并统一配置 SDK、NDK、CMake、ABI、Java 版本和 View Binding。
     id("ndksamples.android.application")
 }
 
@@ -13,16 +15,21 @@ android {
 
     externalNativeBuild {
         cmake {
+            // 本模块只指定 CMake 入口；CMake 版本和公共参数由约定插件统一提供。
             path "src/main/cpp/CMakeLists.txt"
         }
     }
 
     buildFeatures {
+        // 开启 Native 依赖消费，使 CMake 能读取 :base AAR 中发布的
+        // 头文件、库文件和链接元数据。
         prefab true
     }
 }
 
 dependencies {
+    // Gradle 依赖负责取得 :base AAR；上面的 Prefab 开关再把其中的
+    // Native 包暴露给 find_package(base) 和 base::base。
     implementation project(":base")
     implementation libs.appcompat
     implementation libs.androidx.constraintlayout

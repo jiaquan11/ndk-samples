@@ -1,6 +1,9 @@
 LIBHELLOJNI {
   global:
+    # 虚拟机装载共享库后，需要从动态符号表中找到该入口。
     JNI_OnLoad;
   local:
+    # native 方法通过 RegisterNatives() 直接登记函数指针，不需要导出
+    # Java_包名_类名_方法名 形式的静态 JNI 符号，其余符号全部隐藏。
     *;
 };

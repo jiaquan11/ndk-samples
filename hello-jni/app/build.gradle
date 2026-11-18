@@ -1,5 +1,9 @@
 plugins {
+    // 本地 Application 约定插件会应用官方 Android Application 插件，
+    // 并统一配置 SDK、NDK、CMake、ABI、Java 版本和 View Binding。
     id("ndksamples.android.application")
+
+    // 本地 Kotlin 约定插件会应用 Kotlin Android 插件，并统一 JVM Target。
     id("ndksamples.android.kotlin")
 }
 
@@ -14,6 +18,7 @@ android {
 
     externalNativeBuild {
         cmake {
+            // 本模块只指定 CMake 入口；CMake 版本和公共参数由约定插件统一提供。
             path "src/main/cpp/CMakeLists.txt"
         }
     }

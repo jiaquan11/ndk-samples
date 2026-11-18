@@ -1,6 +1,9 @@
 LIBJNICALLBACK {
   global:
+    # 虚拟机装载共享库后，需要从动态符号表中找到该入口。
     JNI_OnLoad;
   local:
+    # stringFromJNI、startTicks 和 StopTicks 均通过 RegisterNatives()
+    # 绑定函数地址，不需要导出 Java_... 形式的静态 JNI 符号。
     *;
 };

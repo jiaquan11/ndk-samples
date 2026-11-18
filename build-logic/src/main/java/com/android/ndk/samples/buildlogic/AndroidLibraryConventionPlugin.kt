@@ -46,15 +46,12 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                         }
                     }
                     ndk {
-                        // riscv64 isn't a supported Android ABI yet (August 2025), but we're
-                        // enabling it here as part of that experiment. Until it's a supported ABI,
-                        // don't include this in your app, as Play will block uploads of APKs which
-                        // contain riscv64 libraries.
+                        // 统一构建 Android NDK 正式支持的四种通用 ABI；模块仍可按需
+                        // 收窄集合，例如只保留 arm64-v8a。
                         abiFilters.addAll(
                             listOf(
                                 "arm64-v8a",
                                 "armeabi-v7a",
-                                "riscv64",
                                 "x86",
                                 "x86_64",
                             )

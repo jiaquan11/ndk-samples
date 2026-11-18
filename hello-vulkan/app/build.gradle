@@ -22,11 +22,6 @@ android {
         shaders {
             glslcArgs.addAll(['-c'])
         }
-        ndk {
-            // GameActivity doesn't currently (August 2025) include riscv64
-            // libraries.
-            abiFilters.remove("riscv64")
-        }
     }
 
     externalNativeBuild {

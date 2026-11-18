@@ -44,16 +44,6 @@ add_app_library(game SHARED
     welcome_scene.cpp
 )
 
-if(ANDROID_ABI STREQUAL riscv64)
-    # This sample uses OpenSLES, which was deprecated in API 26. Our
-    # minSdkVersion is 21, but we also build for riscv64, which isn't a
-    # supported ABI yet and so that configuration is built for the latest API
-    # level supported by the NDK.
-    #
-    # Longer term, this sample should migrate to Oboe.
-    target_compile_options(game PRIVATE -Wno-deprecated-declarations)
-endif()
-
 target_include_directories(game PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/data

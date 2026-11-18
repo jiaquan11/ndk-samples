@@ -13,13 +13,3 @@ target_link_libraries(native-audio-jni
     android
     OpenSLES
 )
-
-if(ANDROID_ABI STREQUAL riscv64)
-    # This sample uses OpenSLES, which was deprecated in API 26. Our
-    # minSdkVersion is 23, but we also build for riscv64, which isn't a
-    # supported ABI yet and so that configuration is built for the latest API
-    # level supported by the NDK.
-    #
-    # Longer term, this sample should migrate to Oboe.
-    target_compile_options(native-audio-jni PRIVATE -Wno-deprecated-declarations)
-endif()
