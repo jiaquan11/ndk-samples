@@ -14,7 +14,6 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
-#include <utility>
 
 #include "logging_internal.h"
 #include "logging_splitters.h"
@@ -135,8 +134,9 @@ void LogdLogChunk(LogSeverity severity, const char* tag, const char* message) {
 }
 
 // 统一完成 Tag 兜底、长日志分片和最终写入；日志等级不承担终止进程的职责。
+// 正文只在本次同步调用期间读取，不接管字符串所有权，因此使用常量引用。
 void EmitLog(LogSeverity severity, const char* tag, const char* file,
-             unsigned int line, std::string message) {
+             unsigned int line, const std::string& message) {
   const char* basename = GetFileBasename(file);
   // 显式空字符串仍是调用方选择的 Tag；只有 nullptr 才使用防御兜底。
   const char* resolved_tag = tag == nullptr ? ResolveFallbackTag() : tag;
@@ -198,7 +198,7 @@ void LogPrint(LogSeverity severity, const char* tag, const char* file,
   va_start(args, format);
   std::string message = internal::StringVPrintf(format, args);
   va_end(args);
-  EmitLog(severity, tag, file, line, std::move(message));
+  EmitLog(severity, tag, file, line, message);
 }
 
 void CheckFailed(const char* condition, const char* tag, const char* file,
@@ -215,7 +215,7 @@ void CheckFailed(const char* condition, const char* tag, const char* file,
   message.append(detail);
   // 终止行为属于 CHECKF 的控制流契约，不由 FATAL 日志等级隐式触发。
   SetAbortMessage(file, line, message);
-  EmitLog(FATAL, tag, file, line, std::move(message));
+  EmitLog(FATAL, tag, file, line, message);
   abort();
 }
 

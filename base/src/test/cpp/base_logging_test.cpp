@@ -35,17 +35,24 @@ struct CapturedChunk {
   std::string message;
 };
 
-std::vector<CapturedChunk> CaptureChunks(LogSeverity severity, const char* tag,
-                                         const char* file, unsigned int line,
-                                         const std::string& message) {
+std::vector<CapturedChunk> CaptureRawChunks(LogSeverity severity,
+                                            const char* tag, const char* file,
+                                            unsigned int line,
+                                            const char* message) {
   std::vector<CapturedChunk> chunks;
-  SplitByLogdChunks(severity, tag, file, line, message.c_str(),
+  SplitByLogdChunks(severity, tag, file, line, message,
                     [&](LogSeverity chunk_severity, const char* chunk_tag,
                         const char* chunk_message) {
                       chunks.push_back({chunk_severity, chunk_tag,
                                         std::string(chunk_message)});
                     });
   return chunks;
+}
+
+std::vector<CapturedChunk> CaptureChunks(LogSeverity severity, const char* tag,
+                                         const char* file, unsigned int line,
+                                         const std::string& message) {
+  return CaptureRawChunks(severity, tag, file, line, message.c_str());
 }
 
 TEST(BaseLoggingSplitter, PreservesEmptyMessage) {
@@ -55,6 +62,23 @@ TEST(BaseLoggingSplitter, PreservesEmptyMessage) {
   EXPECT_EQ(INFO, chunks[0].severity);
   EXPECT_EQ("base-test", chunks[0].tag);
   EXPECT_EQ("", chunks[0].message);
+}
+
+TEST(BaseLoggingSplitter, ReplacesNullMessageWithReadableFallback) {
+  const auto chunks =
+      CaptureRawChunks(INFO, "base-test", nullptr, 0, nullptr);
+
+  ASSERT_EQ(1U, chunks.size());
+  EXPECT_EQ("<null log message>", chunks[0].message);
+}
+
+TEST(BaseLoggingSplitter, UsesFallbackTagForNullTag) {
+  const auto chunks =
+      CaptureRawChunks(INFO, nullptr, nullptr, 0, "message");
+
+  ASSERT_EQ(1U, chunks.size());
+  EXPECT_EQ(kLoggerFallbackTag, chunks[0].tag);
+  EXPECT_EQ("message", chunks[0].message);
 }
 
 TEST(BaseLoggingSplitter, PreservesSingleAndMultilineMessages) {
@@ -79,6 +103,14 @@ TEST(BaseLoggingSplitter, PreservesLeadingAndRepeatedEmptyLines) {
       CaptureChunks(INFO, "base-test", nullptr, 0, "\n");
   ASSERT_EQ(1U, empty_lines.size());
   EXPECT_EQ("\n", empty_lines[0].message);
+}
+
+TEST(BaseLoggingSplitter, TreatsOnlyLfAsLogicalLineSeparator) {
+  const auto chunks =
+      CaptureChunks(INFO, "base-test", nullptr, 0, "first\r\nsecond");
+
+  ASSERT_EQ(1U, chunks.size());
+  EXPECT_EQ("first\r\nsecond", chunks[0].message);
 }
 
 TEST(BaseLoggingSplitter, SplitsAtLineBoundaries) {
@@ -160,20 +192,43 @@ TEST(BaseLoggingSplitter, HandlesExactPayloadBoundaryBeforeNewline) {
   EXPECT_EQ("tail", chunks[1].message);
 }
 
-TEST(BaseLoggingSplitter, DoesNotSplitValidUtf8CodePoint) {
+TEST(BaseLoggingSplitter, DoesNotSplitValidUtf8CodePoints) {
   constexpr char kTag[] = "base-test";
   const std::size_t max_size =
       kLoggerEntryMaxPayload - std::strlen(kTag) - kLoggerEntryReservedBytes;
-  std::string message(max_size - 1, 'x');
-  constexpr char kUtf8Character[] = "\xe4\xb8\xad";
-  message.append(kUtf8Character);
+  const std::vector<std::string> utf8_code_points = {
+      "\xc2\xa2",          // 2 字节：¢
+      "\xe4\xb8\xad",      // 3 字节：中
+      "\xf0\x9f\x98\x80",  // 4 字节：😀
+  };
 
-  const auto chunks = CaptureChunks(INFO, kTag, nullptr, 0, message);
+  for (const auto& code_point : utf8_code_points) {
+    SCOPED_TRACE(::testing::Message()
+                 << "UTF-8 code point bytes=" << code_point.size());
+    std::string message(max_size - 1, 'x');
+    message.append(code_point);
+
+    const auto chunks = CaptureChunks(INFO, kTag, nullptr, 0, message);
+
+    ASSERT_EQ(2U, chunks.size());
+    EXPECT_EQ(max_size - 1, chunks[0].message.size());
+    EXPECT_EQ(code_point, chunks[1].message);
+    EXPECT_EQ(message, chunks[0].message + chunks[1].message);
+  }
+}
+
+TEST(BaseLoggingSplitter, PreservesInvalidUtf8BytesWhileMakingProgress) {
+  constexpr char kTag[] = "base-test";
+  const std::size_t max_size =
+      kLoggerEntryMaxPayload - std::strlen(kTag) - kLoggerEntryReservedBytes;
+  const std::string invalid_utf8(max_size + 7, static_cast<char>(0x80));
+
+  const auto chunks = CaptureChunks(INFO, kTag, nullptr, 0, invalid_utf8);
 
   ASSERT_EQ(2U, chunks.size());
-  EXPECT_EQ(max_size - 1, chunks[0].message.size());
-  EXPECT_EQ(kUtf8Character, chunks[1].message);
-  EXPECT_EQ(message, chunks[0].message + chunks[1].message);
+  EXPECT_EQ(max_size, chunks[0].message.size());
+  EXPECT_EQ(7U, chunks[1].message.size());
+  EXPECT_EQ(invalid_utf8, chunks[0].message + chunks[1].message);
 }
 
 TEST(BaseLoggingSplitter, FallsBackInsteadOfAbortingForOversizedTag) {

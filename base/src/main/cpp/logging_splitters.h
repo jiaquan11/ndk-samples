@@ -23,12 +23,15 @@ static_assert(kLoggerEntryMaxPayload >
               kLoggerEntryReservedBytes + kLoggerMinimumTextPayload);
 static_assert(kLoggerMinimumTextPayload >= 4);
 
+// 对合法 UTF-8 返回不超过 max_bytes 的码点边界，避免把一个码点拆到两片；
+// 非法序列无法找到边界时仍按 max_bytes 前进，保证不死循环且不丢原始字节。
 inline std::size_t FindUtf8PrefixLength(std::string_view text,
                                         std::size_t max_bytes) {
   if (text.size() <= max_bytes) {
     return text.size();
   }
 
+  // cut 表示前一片包含的字节数，因此 text[cut] 是下一片准备使用的首字节。
   std::size_t cut = max_bytes;
   while (cut > 0 &&
          (static_cast<unsigned char>(text[cut]) & 0xc0U) == 0x80U) {
@@ -39,6 +42,9 @@ inline std::size_t FindUtf8PrefixLength(std::string_view text,
   return cut == 0 ? max_bytes : cut;
 }
 
+// 按逻辑行和 logd 负载上限组织正文，再把每个以 \0 结尾的片段同步交给回调。
+// 回调中的 message 指向函数内复用的栈缓冲区，必须在返回前消费或复制，不能保存
+// 该指针供异步任务稍后使用。
 template <typename F>
 void SplitByLogdChunks(LogSeverity severity, const char* tag, const char* file,
                        unsigned int line, const char* msg,
@@ -141,6 +147,7 @@ void SplitByLogdChunks(LogSeverity severity, const char* tag, const char* file,
   std::string_view remaining =
       msg == nullptr ? std::string_view("<null log message>")
                      : std::string_view(msg);
+  // 只把 \n 作为逻辑行分隔符；CRLF 中的 \r 属于上一行正文并原样保留。
   while (true) {
     const std::size_t newline = remaining.find('\n');
     if (newline == std::string_view::npos) {
