@@ -16,17 +16,16 @@ typedef struct tick_context {
   // JavaVM 是进程级入口，可以跨线程长期保存；JNIEnv 只能由各线程自行取得。
   JavaVM* javaVM;
 
-  // JNI_OnLoad 创建并长期持有的 JniHandler 类和对象全局引用。
+  // JNI_OnLoad 创建并按进程生命周期持有的 JniHandler 状态。
   jclass jniHandlerClz;
   jobject jniHandlerObj;
-
-  // 一次 StartTicks/StopTicks 会话内持有的 Activity 对象全局引用。
-  jobject mainActivityObj;
-
-  // jmethodID 是可缓存的方法句柄，不是 JNI Reference，不调用 DeleteRef。
-  // updateStatusMethod 的声明类由进程级 JniHandler 全局引用保持有效；
-  // updateTimerMethod 的声明类由会话级 Activity 对象全局引用保持有效。
+  // jmethodID 是可缓存的方法句柄，不是 JNI Reference，不调用 DeleteRef；
+  // 声明类由上面的 JniHandler 类全局引用保持有效。
   jmethodID updateStatusMethod;
+
+  // 一次 StartTicks/StopTicks 会话内持有的 MainActivity 状态。Activity
+  // 对象全局引用会同时保持其所属类和 ClassLoader 有效。
+  jobject mainActivityObj;
   jmethodID updateTimerMethod;
 
   // Activity 生命周期在主线程调用 StartTicks/StopTicks；互斥量和条件变量
@@ -55,60 +54,13 @@ jstring StringFromJni(JNIEnv* env, jobject) {
                            HELLO_JNI_ABI ".");
 }
 
-static bool QueryRuntimeInfo(JNIEnv* env, jobject instance) {
-  // 演示调用 JniHandler 的静态方法和实例方法；类与对象全局引用已在
-  // JNI_OnLoad 阶段完成初始化。该函数也在加载线程执行；查找或调用过程
-  // 若产生 pending exception，则保留给加载失败路径，而不是在这里清除。
-  jmethodID versionFunc = env->GetStaticMethodID(
-      g_ctx.jniHandlerClz, "getBuildVersion", "()Ljava/lang/String;");
-  if (!versionFunc) {
-    LOGE("Failed to retrieve getBuildVersion() methodID @ line %d", __LINE__);
-    return false;
-  }
-  jstring buildVersion = static_cast<jstring>(
-      env->CallStaticObjectMethod(g_ctx.jniHandlerClz, versionFunc));
-  if (env->ExceptionCheck() || buildVersion == nullptr) {
-    LOGE("Failed to call getBuildVersion() @ line %d", __LINE__);
-    if (buildVersion != nullptr) env->DeleteLocalRef(buildVersion);
-    return false;
-  }
-
-  // buildVersion 是局部引用，用完需要 DeleteLocalRef；返回的字符指针只是
-  // 临时视图，必须与 ReleaseStringUTFChars() 成对使用。
-  const char* version = env->GetStringUTFChars(buildVersion, NULL);
-  if (!version) {
-    LOGE("Unable to get version string @ line %d", __LINE__);
-    env->DeleteLocalRef(buildVersion);
-    return false;
-  }
-  LOGI("Android Version - %s", version);
-  env->ReleaseStringUTFChars(buildVersion, version);
-
-  env->DeleteLocalRef(buildVersion);
-
-  jmethodID memFunc =
-      env->GetMethodID(g_ctx.jniHandlerClz, "getRuntimeMemorySize", "()J");
-  if (!memFunc) {
-    LOGE("Failed to retrieve getRuntimeMemorySize() methodID @ line %d",
-         __LINE__);
-    return false;
-  }
-  jlong result = env->CallLongMethod(instance, memFunc);
-  if (env->ExceptionCheck()) {
-    LOGE("Failed to call getRuntimeMemorySize() @ line %d", __LINE__);
-    return false;
-  }
-
-  LOGI("Runtime free memory size: %" PRId64, result);
-  return true;
-}
-
 static bool ReportAndClearJavaException(JNIEnv* env, const char* operation) {
   if (!env->ExceptionCheck()) return false;
 
-  // 该 pthread 不是从上层 Java 方法进入 Native 的，回调异常返回到 Native
-  // 后没有 Java 调用者继续接收。记录并清除 pending exception 后，线程
-  // 才能继续执行引用清理、Detach 和退出通知。
+  // 当调用方已经决定在 Native 侧终止当前流程时，先输出异常堆栈，再显式
+  // 清除 pending exception。Android ART 的 ExceptionDescribe() 会在输出后
+  // 恢复原异常，不能把它当作 ExceptionClear() 使用。需要让异常沿原调用链
+  // 返回 Java 的普通 Native 方法不能使用该辅助函数。
   LOGE("Java exception while %s", operation);
   env->ExceptionDescribe();
   env->ExceptionClear();
@@ -135,29 +87,20 @@ static bool SendJavaMsg(JNIEnv* env, jobject instance, jmethodID func,
 
 // 只能在没有工作线程可能继续使用引用时调用：要么初始化失败、线程尚未创建，
 // 要么 StopTicks() 已经确认工作线程退出。
-static void ReleaseMainActivityReferences(JNIEnv* env) {
+static void ReleaseMainActivityResources(JNIEnv* env) {
   if (g_ctx.mainActivityObj != nullptr) {
     env->DeleteGlobalRef(g_ctx.mainActivityObj);
     g_ctx.mainActivityObj = nullptr;
   }
-  g_ctx.updateStatusMethod = nullptr;
   g_ctx.updateTimerMethod = nullptr;
 }
 
-static bool InitializeMainActivityCallbacks(JNIEnv* env, jobject instance) {
-  // 在创建 pthread 前解析全部回调；查找失败时可以把原始待处理异常直接
-  // 返回给 Java 调用方，不让半初始化线程继续运行。
+static bool InitializeMainActivityCallback(JNIEnv* env, jobject instance) {
+  // 在创建 pthread 前准备本次 Activity 会话的回调；查找失败时可以把
+  // 原始待处理异常直接返回给 Java 调用方，不让半初始化线程继续运行。
   jclass mainActivityClass = env->GetObjectClass(instance);
   if (mainActivityClass == nullptr) {
     LOGE("Failed to get MainActivity class");
-    return false;
-  }
-
-  jmethodID updateStatusMethod = env->GetMethodID(
-      g_ctx.jniHandlerClz, "updateStatus", "(Ljava/lang/String;)V");
-  if (updateStatusMethod == nullptr) {
-    LOGE("Failed to find JniHandler.updateStatus");
-    env->DeleteLocalRef(mainActivityClass);
     return false;
   }
 
@@ -179,12 +122,11 @@ static bool InitializeMainActivityCallbacks(JNIEnv* env, jobject instance) {
     return false;
   }
 
-  // 只有对象全局引用和两个方法句柄全部准备成功后才提交到全局上下文。
-  // 两个 jmethodID 的声明类分别由进程级 JniHandler 全局引用和会话级
-  // Activity 对象全局引用保持有效，无需再额外保存 Activity 的 jclass。
+  // 只有对象全局引用和方法句柄都准备成功后才提交到全局上下文。
+  // Activity 对象全局引用会保持 updateTimerMethod 的声明类有效，无需再
+  // 额外保存一份 Activity 的 jclass 全局引用。
   env->DeleteLocalRef(mainActivityClass);
   g_ctx.mainActivityObj = globalMainActivity;
-  g_ctx.updateStatusMethod = updateStatusMethod;
   g_ctx.updateTimerMethod = updateTimerMethod;
   return true;
 }
@@ -290,6 +232,8 @@ static TickWaitResult WaitForNextTickOrStop(
   return waitResult;
 }
 
+// 线程以 detached 方式运行，没有 pthread_join() 接收退出值；各退出路径
+// 在完成必要清理后统一返回 nullptr。
 void* UpdateTicks(void* context) {
   // Native 工作线程先获取本线程专属 JNIEnv，再安全调用 Java 回调；退出时
   // 只分离由本线程主动附加的 JNI 环境。
@@ -305,25 +249,25 @@ void* UpdateTicks(void* context) {
     if (res != JNI_OK) {
       LOGE("Failed to AttachCurrentThread, ErrorCode = %d", res);
       FinishTickerThread(pctx, false);
-      return context;
+      return nullptr;
     }
     attachedByThisThread = true;
   } else if (res != JNI_OK) {
     LOGE("Failed to get JNIEnv, ErrorCode = %d", res);
     FinishTickerThread(pctx, false);
-    return context;
+    return nullptr;
   }
 
   if (!SendJavaMsg(env, pctx->jniHandlerObj, pctx->updateStatusMethod,
                    "TickerThread status: initializing...")) {
     FinishTickerThread(pctx, attachedByThisThread);
-    return context;
+    return nullptr;
   }
 
   if (!SendJavaMsg(env, pctx->jniHandlerObj, pctx->updateStatusMethod,
                    "TickerThread status: start ticking ...")) {
     FinishTickerThread(pctx, attachedByThisThread);
-    return context;
+    return nullptr;
   }
 
   while (!IsTickerStopRequested(pctx)) {
@@ -361,7 +305,7 @@ void* UpdateTicks(void* context) {
   SendJavaMsg(env, pctx->jniHandlerObj, pctx->updateStatusMethod,
               "TickerThread status: ticking stopped");
   FinishTickerThread(pctx, attachedByThisThread);
-  return context;
+  return nullptr;
 }
 
 // Java onResume() 调用该入口创建计时线程和回调所需的全局引用。
@@ -373,44 +317,49 @@ void StartTicks(JNIEnv* env, jobject instance) {
     return;
   }
 
-  if (!InitializeMainActivityCallbacks(env, instance)) return;
+  if (!InitializeMainActivityCallback(env, instance)) return;
 
-  pthread_t threadInfo;
-  pthread_attr_t threadAttr;
-  pthread_condattr_t conditionAttr;
+  pthread_t threadInfo;              // 线程标识。
+  pthread_attr_t threadAttr;         // 线程属性对象。
+  pthread_condattr_t conditionAttr;  // 条件变量属性对象。
 
+  // 初始化线程属性对象。
   int result = pthread_attr_init(&threadAttr);
   if (result != 0) {
     LOGE("Failed to initialize thread attributes, ErrorCode = %d", result);
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
     return;
   }
 
   // pthread detached 表示无需 pthread_join() 回收线程资源；它与 JNI 的
   // AttachCurrentThread()/DetachCurrentThread() 是两个不同层面的概念。
-  result = pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
+  // 将线程属性设置为分离状态。
+  result =
+      pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
   if (result != 0) {
     LOGE("Failed to configure detached thread, ErrorCode = %d", result);
     pthread_attr_destroy(&threadAttr);
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
     return;
   }
 
+  // 初始化保护计时会话状态的互斥量。
   result = pthread_mutex_init(&g_ctx.lock, NULL);
   if (result != 0) {
     LOGE("Failed to initialize ticker mutex, ErrorCode = %d", result);
     pthread_attr_destroy(&threadAttr);
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
     return;
   }
 
+  // 初始化用于配置条件变量时钟的属性对象。
   result = pthread_condattr_init(&conditionAttr);
   if (result != 0) {
     LOGE("Failed to initialize ticker condition attributes, ErrorCode = %d",
          result);
     pthread_mutex_destroy(&g_ctx.lock);
     pthread_attr_destroy(&threadAttr);
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
     return;
   }
 
@@ -422,10 +371,11 @@ void StartTicks(JNIEnv* env, jobject instance) {
     pthread_condattr_destroy(&conditionAttr);
     pthread_mutex_destroy(&g_ctx.lock);
     pthread_attr_destroy(&threadAttr);
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
     return;
   }
 
+  // 使用绑定了单调时钟的属性初始化条件变量。
   result = pthread_cond_init(&g_ctx.condition, &conditionAttr);
   const int destroyConditionAttrResult =
       pthread_condattr_destroy(&conditionAttr);
@@ -437,7 +387,7 @@ void StartTicks(JNIEnv* env, jobject instance) {
     LOGE("Failed to initialize ticker condition, ErrorCode = %d", result);
     pthread_mutex_destroy(&g_ctx.lock);
     pthread_attr_destroy(&threadAttr);
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
     return;
   }
 
@@ -447,6 +397,7 @@ void StartTicks(JNIEnv* env, jobject instance) {
   g_ctx.stopRequested = 0;
   g_ctx.running = 1;
 
+  // 创建分离式工作线程，UpdateTicks 是线程入口函数。
   result = pthread_create(&threadInfo, &threadAttr, UpdateTicks, &g_ctx);
   const int destroyAttrResult = pthread_attr_destroy(&threadAttr);
   if (destroyAttrResult != 0) {
@@ -460,7 +411,7 @@ void StartTicks(JNIEnv* env, jobject instance) {
     g_ctx.syncInitialized = 0;
     pthread_cond_destroy(&g_ctx.condition);
     pthread_mutex_destroy(&g_ctx.lock);
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
   }
 }
 
@@ -468,7 +419,7 @@ void StopTicks(JNIEnv* env, jobject) {
   // Java onPause() 请求停止，并等待分离式工作线程通过条件变量报告退出，
   // 随后才释放回调引用和同步对象。
   if (!g_ctx.syncInitialized) {
-    ReleaseMainActivityReferences(env);
+    ReleaseMainActivityResources(env);
     return;
   }
 
@@ -500,7 +451,7 @@ void StopTicks(JNIEnv* env, jobject) {
   }
   pthread_mutex_unlock(&g_ctx.lock);
 
-  ReleaseMainActivityReferences(env);
+  ReleaseMainActivityResources(env);
 
   result = pthread_cond_destroy(&g_ctx.condition);
   if (result != 0) {
@@ -519,7 +470,12 @@ static jint RegisterNativeMethods(JNIEnv* env) {
   // FindClass 使用以 '/' 分隔的 JNI 内部类名。注册表中的方法名和描述符
   // 必须与 Java 声明逐字一致，尤其要保留 StopTicks 的大写首字母。
   jclass c = env->FindClass("com/example/hellojnicallback/MainActivity");
-  if (c == nullptr) return JNI_ERR;
+  if (c == nullptr) {
+    if (!ReportAndClearJavaException(env, "finding MainActivity")) {
+      LOGE("FindClass returned null for MainActivity");
+    }
+    return JNI_ERR;
+  }
 
   static const JNINativeMethod methods[] = {
       // 实例方法的 jobject this 是隐式参数，不写入 JNI 方法描述符。
@@ -528,13 +484,107 @@ static jint RegisterNativeMethods(JNIEnv* env) {
       {"startTicks", "()V", reinterpret_cast<void*>(StartTicks)},
       {"StopTicks", "()V", reinterpret_cast<void*>(StopTicks)},
   };
-  return env->RegisterNatives(c, methods,
-                              static_cast<jint>(std::size(methods)));
+  const jint result = env->RegisterNatives(
+      c, methods, static_cast<jint>(std::size(methods)));
+  const bool registrationException = ReportAndClearJavaException(
+      env, "registering MainActivity native methods");
+  env->DeleteLocalRef(c);
+
+  if (registrationException || result != JNI_OK) {
+    if (!registrationException) {
+      LOGE("RegisterNatives failed with result %d", result);
+    }
+    return JNI_ERR;
+  }
+  return JNI_OK;
 }
 
-static void ReleaseJniHandlerReferences(JNIEnv* env) {
+static bool InitializeJniHandler(JNIEnv* env) {
+  // 在 Native 中查找 Java 类、构造器和进程级回调入口，再创建对象。
+  // 局部引用只服务于初始化，成功后转换成可跨调用和线程使用的全局状态。
+  jclass handlerClass =
+      env->FindClass("com/example/hellojnicallback/JniHandler");
+  if (handlerClass == nullptr) {
+    if (!ReportAndClearJavaException(env, "finding JniHandler")) {
+      LOGE("FindClass returned null for JniHandler");
+    }
+    return false;
+  }
+
+  jmethodID constructor = env->GetMethodID(handlerClass, "<init>", "()V");
+  if (constructor == nullptr) {
+    const bool lookupException = ReportAndClearJavaException(
+        env, "looking up JniHandler constructor");
+    env->DeleteLocalRef(handlerClass);
+    if (!lookupException) {
+      LOGE("GetMethodID returned null for JniHandler constructor");
+    }
+    return false;
+  }
+
+  // updateStatus 属于进程级 JniHandler，而不是某次 Activity 会话；在
+  // JNI_OnLoad 阶段一次性验证并缓存，工作线程启动时直接使用。
+  jmethodID updateStatusMethod = env->GetMethodID(
+      handlerClass, "updateStatus", "(Ljava/lang/String;)V");
+  if (updateStatusMethod == nullptr) {
+    const bool lookupException = ReportAndClearJavaException(
+        env, "looking up JniHandler.updateStatus");
+    env->DeleteLocalRef(handlerClass);
+    if (!lookupException) {
+      LOGE("GetMethodID returned null for JniHandler.updateStatus");
+    }
+    return false;
+  }
+
+  jobject handler = env->NewObject(handlerClass, constructor);
+  const bool constructionException =
+      ReportAndClearJavaException(env, "creating JniHandler");
+  if (constructionException || handler == nullptr) {
+    if (handler != nullptr) env->DeleteLocalRef(handler);
+    env->DeleteLocalRef(handlerClass);
+    if (!constructionException) {
+      LOGE("NewObject returned null for JniHandler");
+    }
+    return false;
+  }
+
+  jclass globalHandlerClass =
+      static_cast<jclass>(env->NewGlobalRef(handlerClass));
+  const bool classReferenceException = ReportAndClearJavaException(
+      env, "creating JniHandler class global reference");
+  if (classReferenceException || globalHandlerClass == nullptr) {
+    env->DeleteLocalRef(handler);
+    env->DeleteLocalRef(handlerClass);
+    if (!classReferenceException) {
+      LOGE("NewGlobalRef returned null for JniHandler class");
+    }
+    return false;
+  }
+
+  jobject globalHandler = env->NewGlobalRef(handler);
+  const bool objectReferenceException = ReportAndClearJavaException(
+      env, "creating JniHandler object global reference");
+  if (objectReferenceException || globalHandler == nullptr) {
+    env->DeleteGlobalRef(globalHandlerClass);
+    env->DeleteLocalRef(handler);
+    env->DeleteLocalRef(handlerClass);
+    if (!objectReferenceException) {
+      LOGE("NewGlobalRef returned null for JniHandler object");
+    }
+    return false;
+  }
+
+  env->DeleteLocalRef(handler);
+  env->DeleteLocalRef(handlerClass);
+  g_ctx.jniHandlerClz = globalHandlerClass;
+  g_ctx.jniHandlerObj = globalHandler;
+  g_ctx.updateStatusMethod = updateStatusMethod;
+  return true;
+}
+
+static void ReleaseJniHandlerResources(JNIEnv* env) {
   // 当前没有 JNI_OnUnload，成功加载后的引用按进程生命周期保留；
-  // 该函数主要用于 JNI_OnLoad 中途失败时回滚已创建的全局引用。
+  // 该函数主要用于 JNI_OnLoad 中途失败时回滚已提交的进程级状态。
   if (g_ctx.jniHandlerObj != nullptr) {
     env->DeleteGlobalRef(g_ctx.jniHandlerObj);
     g_ctx.jniHandlerObj = nullptr;
@@ -543,62 +593,75 @@ static void ReleaseJniHandlerReferences(JNIEnv* env) {
     env->DeleteGlobalRef(g_ctx.jniHandlerClz);
     g_ctx.jniHandlerClz = nullptr;
   }
+  g_ctx.updateStatusMethod = nullptr;
 }
 
-static bool InitializeJniHandler(JNIEnv* env) {
-  // 在 Native 中查找 Java 类、定位无参构造器 <init>()V 并创建对象。
-  // 局部引用只服务于初始化，成功后转换成可跨调用和线程使用的全局引用。
-  jclass handlerClass =
-      env->FindClass("com/example/hellojnicallback/JniHandler");
-  if (handlerClass == nullptr) {
-    LOGE("Failed to find JniHandler");
+static bool QueryRuntimeInfo(JNIEnv* env) {
+  // 演示调用 JniHandler 的静态方法和实例方法；类与对象全局引用已在
+  // JNI_OnLoad 阶段完成初始化。查找或调用失败时输出并消费 Java 异常，
+  // 随后返回 false；调用方仍会回滚引用并让 JNI_OnLoad 返回 JNI_ERR。
+  jmethodID versionFunc = env->GetStaticMethodID(
+      g_ctx.jniHandlerClz, "getBuildVersion", "()Ljava/lang/String;");
+  if (!versionFunc) {
+    if (!ReportAndClearJavaException(
+            env, "looking up JniHandler.getBuildVersion")) {
+      LOGE("GetStaticMethodID returned null for JniHandler.getBuildVersion");
+    }
+    return false;
+  }
+  jstring buildVersion = static_cast<jstring>(
+      env->CallStaticObjectMethod(g_ctx.jniHandlerClz, versionFunc));
+  const bool buildVersionCallFailed = ReportAndClearJavaException(
+      env, "calling JniHandler.getBuildVersion");
+  if (buildVersionCallFailed || buildVersion == nullptr) {
+    if (!buildVersionCallFailed) {
+      LOGE("JniHandler.getBuildVersion returned null");
+    }
+    if (buildVersion != nullptr) env->DeleteLocalRef(buildVersion);
     return false;
   }
 
-  jmethodID constructor = env->GetMethodID(handlerClass, "<init>", "()V");
-  if (constructor == nullptr) {
-    LOGE("Failed to find JniHandler constructor");
-    env->DeleteLocalRef(handlerClass);
+  // buildVersion 是局部引用，用完需要 DeleteLocalRef；返回的字符指针只是
+  // 临时视图，必须与 ReleaseStringUTFChars() 成对使用。
+  const char* version = env->GetStringUTFChars(buildVersion, NULL);
+  const bool versionCharsFailed = ReportAndClearJavaException(
+      env, "reading JniHandler.getBuildVersion result");
+  if (versionCharsFailed || version == nullptr) {
+    if (!versionCharsFailed) {
+      LOGE("GetStringUTFChars returned null for Android version");
+    }
+    env->DeleteLocalRef(buildVersion);
+    return false;
+  }
+  LOGI("Android Version - %s", version);
+  env->ReleaseStringUTFChars(buildVersion, version);
+
+  env->DeleteLocalRef(buildVersion);
+
+  jmethodID memFunc =
+      env->GetMethodID(g_ctx.jniHandlerClz, "getRuntimeMemorySize", "()J");
+  if (!memFunc) {
+    if (!ReportAndClearJavaException(
+            env, "looking up JniHandler.getRuntimeMemorySize")) {
+      LOGE(
+          "GetMethodID returned null for JniHandler.getRuntimeMemorySize");
+    }
+    return false;
+  }
+  jlong result = env->CallLongMethod(g_ctx.jniHandlerObj, memFunc);
+  if (ReportAndClearJavaException(
+          env, "calling JniHandler.getRuntimeMemorySize")) {
     return false;
   }
 
-  jobject handler = env->NewObject(handlerClass, constructor);
-  if (handler == nullptr || env->ExceptionCheck()) {
-    LOGE("Failed to create JniHandler");
-    if (handler != nullptr) env->DeleteLocalRef(handler);
-    env->DeleteLocalRef(handlerClass);
-    return false;
-  }
-
-  jclass globalHandlerClass =
-      static_cast<jclass>(env->NewGlobalRef(handlerClass));
-  if (globalHandlerClass == nullptr) {
-    LOGE("Failed to create JniHandler class global reference");
-    env->DeleteLocalRef(handler);
-    env->DeleteLocalRef(handlerClass);
-    return false;
-  }
-
-  jobject globalHandler = env->NewGlobalRef(handler);
-  if (globalHandler == nullptr) {
-    LOGE("Failed to create JniHandler object global reference");
-    env->DeleteGlobalRef(globalHandlerClass);
-    env->DeleteLocalRef(handler);
-    env->DeleteLocalRef(handlerClass);
-    return false;
-  }
-
-  env->DeleteLocalRef(handler);
-  env->DeleteLocalRef(handlerClass);
-  g_ctx.jniHandlerClz = globalHandlerClass;
-  g_ctx.jniHandlerObj = globalHandler;
+  LOGI("Runtime free memory size: %" PRId64, result);
   return true;
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
   // 加载阶段完成动态注册与长期回调引用初始化。成功路径中的全局引用按进程
-  // 生命周期保留，本示例没有 JNI_OnUnload；失败路径会回滚已创建的全局引用
-  // 并返回 JNI_ERR。
+  // 生命周期保留，本示例没有 JNI_OnUnload；失败点会报告并消费 Java 异常，
+  // 回滚已创建的全局引用并返回 JNI_ERR。
   JNIEnv* env;
   // 此时尚未创建工作线程，可以安全重置唯一的进程级上下文。只缓存可
   // 跨线程使用的 JavaVM，不把当前加载线程的 JNIEnv 保存到 g_ctx。
@@ -610,13 +673,13 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
   }
 
   // 先建立 Java Native 方法到 C++ 函数的绑定，再创建长期 JniHandler
-  // 引用并查询运行信息；任一步失败都不能把共享库视为正常加载。
+  // 状态并查询运行信息；任一步失败都不能把共享库视为正常加载。
   const jint registration_result = RegisterNativeMethods(env);
   if (registration_result != JNI_OK) return registration_result;
 
   if (!InitializeJniHandler(env)) return JNI_ERR;
-  if (!QueryRuntimeInfo(env, g_ctx.jniHandlerObj)) {
-    ReleaseJniHandlerReferences(env);
+  if (!QueryRuntimeInfo(env)) {
+    ReleaseJniHandlerResources(env);
     return JNI_ERR;
   }
 
