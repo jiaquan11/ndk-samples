@@ -12,6 +12,16 @@ android {
         versionName "1.0"
     }
 
+    buildTypes {
+        release {
+            ndk {
+                // 线上只记录模块相对地址还不够；必须同时归档与该版本、ABI
+                // 精确匹配的完整 Native 调试符号，才能离线还原函数和源码行。
+                debugSymbolLevel 'FULL'
+            }
+        }
+    }
+
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
@@ -27,5 +37,5 @@ dependencies {
     implementation libs.appcompat
     implementation libs.material
     implementation libs.androidx.constraintlayout
-    implementation project(":base")
+    implementation project(":native-diagnostics")
 }

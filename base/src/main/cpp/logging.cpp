@@ -76,8 +76,8 @@ std::string StringVPrintf(const char* format, va_list args) {
 
 namespace {
 
-// __FILE__ 可能使用 Unix 或 Windows 路径分隔符。这里只返回原字符串中
-// 文件名部分的指针，不创建额外字符串。
+// 兼容未提供 __FILE_NAME__ 的编译器：__FILE__ 可能使用 Unix 或 Windows
+// 路径分隔符，这里只返回原字符串中的文件名指针，不创建额外字符串。
 const char* GetFileBasename(const char* file) {
   if (file == nullptr) {
     return nullptr;

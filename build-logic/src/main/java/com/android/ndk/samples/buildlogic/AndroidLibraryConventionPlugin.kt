@@ -63,17 +63,8 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     targetCompatibility = AndroidBuildConfig.JAVA
                 }
 
-                // Studio will not automatically pass logcat through ndk-stack, so we need to avoid
-                // stripping debug binaries if we want the crash trace to be readable.
-                buildTypes {
-                    debug {
-                        packaging {
-                            jniLibs {
-                                keepDebugSymbols += "**/*.so"
-                            }
-                        }
-                    }
-                }
+                // 不在 AAR 中全局保留未剥离 so：本地调试使用 CMake 的
+                // intermediates/cxx 产物，发布符号由最终应用统一归档和匹配。
             }
         }
     }

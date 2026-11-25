@@ -59,17 +59,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     viewBinding = true
                 }
 
-                // Studio will not automatically pass logcat through ndk-stack, so we need to avoid
-                // stripping debug binaries if we want the crash trace to be readable.
-                buildTypes {
-                    debug {
-                        packaging {
-                            jniLibs {
-                                keepDebugSymbols += "**/*.so"
-                            }
-                        }
-                    }
-                }
+                // 不在 APK 中全局保留未剥离 so：本地调试使用 CMake 的
+                // intermediates/cxx 产物，发布构建则由具体应用按需生成独立符号包。
             }
         }
     }

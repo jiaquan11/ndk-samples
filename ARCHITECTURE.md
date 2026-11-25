@@ -42,6 +42,28 @@ repository are made.
 
 See the README.md in that directory for more details.
 
+### Common Android / Native libraries
+
+`base`, `camera:camera-utils`, and `native-diagnostics` are reusable Android
+Library modules rather than standalone sample apps. They publish AAR and
+Prefab metadata:
+
+- `base` provides the common Native logging implementation.
+- `camera:camera-utils` provides shared camera helpers used by the camera apps.
+- `native-diagnostics` builds on `base` and provides the synchronous JNI
+  exception boundary, structured error events, bounded Native stack capture,
+  and the Java exception contract used by the `exceptions` sample. Its Android
+  API also contains a small, stateless `ApplicationExitInfo` reader scoped to
+  the current package. It returns Native crash records and exits classified as
+  ANR by the system; it does not install a signal
+  handler or own persistence and upload policy.
+
+They are built as static Native libraries, so their mutable C++ state belongs
+to each final shared library that links them. In particular, a reporter
+installed in one consumer `.so` is not automatically visible in another.
+See [native-diagnostics/README.md](native-diagnostics/README.md) for the
+consumer contract and Prefab `find_package()` order.
+
 ### docs
 
 Documentation and supporting artifacts for this repository. Yes, for now it's

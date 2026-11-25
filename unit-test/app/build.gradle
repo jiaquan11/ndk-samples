@@ -44,6 +44,8 @@ android {
 dependencies {
     // 本地 Project 依赖，为 CMake 提供 base Package 的来源。
     implementation project(":base")
+    // native-diagnostics 的纯 C++ 与真实 JNIEnv 测试复用本模块现有设备测试壳。
+    implementation project(":native-diagnostics")
     implementation libs.appcompat
     implementation libs.material
     implementation libs.androidx.constraintlayout

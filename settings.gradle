@@ -24,8 +24,9 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NDK Samples"
-// 与上面的 includeBuild 不同：这里把 base 加入主构建，成为普通 Gradle 子项目 :base。
+// 与上面的 includeBuild 不同：这里把公共库加入主构建，成为普通 Gradle 子项目。
 include(":base")
+include(":native-diagnostics")
 include(":bitmap-plasma:app")
 include(":camera:basic")
 include(":camera:camera-utils")

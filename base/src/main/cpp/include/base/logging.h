@@ -12,6 +12,15 @@
 #error "NDKSAMPLES_LOG_TAG_INTERNAL must not be defined"
 #endif
 
+// Clang/GCC 支持 __FILE_NAME__ 时直接把文件名写入二进制，避免 __FILE__
+// 的构建机绝对路径即使经过运行期裁剪，仍以字符串字面量残留在发布 so。
+// 其它编译器回退到 __FILE__，后端仍会在展示前提取 basename。
+#if defined(__FILE_NAME__)
+#define NDKSAMPLES_SOURCE_FILE_INTERNAL __FILE_NAME__
+#else
+#define NDKSAMPLES_SOURCE_FILE_INTERNAL __FILE__
+#endif
+
 // 调用单元可以在首次包含本头文件前定义 LOG_TAG。未定义时传入 nullptr，
 // 由后端依次使用进程名和 "ndk-samples" 作为防御兜底 Tag。
 #ifdef LOG_TAG
@@ -98,7 +107,8 @@ class ErrnoRestorer {
     const auto ndksamples_log_severity_ = (severity_value);               \
     if (::ndksamples::base::IsLoggable(ndksamples_log_severity_)) {       \
       ::ndksamples::base::LogPrint(ndksamples_log_severity_, (tag_value), \
-                                   __FILE__, __LINE__, __VA_ARGS__);       \
+                                   NDKSAMPLES_SOURCE_FILE_INTERNAL,        \
+                                   __LINE__, __VA_ARGS__);                 \
     }                                                                     \
   } while (false)
 
@@ -128,7 +138,7 @@ class ErrnoRestorer {
   do {                                                                         \
     if (!(condition)) {                                                        \
       ::ndksamples::base::CheckFailed(                                        \
-          #condition, NDKSAMPLES_LOG_TAG_INTERNAL, __FILE__, __LINE__,         \
-          __VA_ARGS__);                                                       \
+          #condition, NDKSAMPLES_LOG_TAG_INTERNAL,                            \
+          NDKSAMPLES_SOURCE_FILE_INTERNAL, __LINE__, __VA_ARGS__);            \
     }                                                                          \
   } while (false)

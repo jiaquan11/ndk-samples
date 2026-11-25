@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Exceptions</string>
+    <string name="no_exception_thrown">No exception thrown</string>
+    <string name="runtime_exception_caught">RuntimeException caught. Message: \"%1$s\"</string>
+    <string name="exit_history_loading">Loading retained Native crash and ANR exit records…</string>
+    <string name="exit_history_unsupported">Historical process exit diagnostics require Android 11 or newer.</string>
+    <string name="exit_history_empty">No retained Native crash or ANR exit record was found. An empty result does not prove that no failure occurred.</string>
+    <string name="exit_history_header">Retained Native crash / ANR exit records: %1$d (showing up to %2$d)</string>
+    <string name="exit_history_item">%1$s at %2$s · status=%3$d · trace=%4$s · traceBytes=%5$d</string>
+    <string name="exit_history_failed">Unable to read historical process exits: %1$s</string>
 </resources>

@@ -8,9 +8,11 @@ project("unittest")
 
 include(AppLibrary)
 
-# app_tests 使用三个 Prefab Package：base 来自本地 Project，googletest
-# 和 junit-gtest 来自外部 AAR；生产目标 unittest 不依赖这些测试能力。
+# app_tests 使用四个 Prefab Package：base 与 native-diagnostics 来自
+# 本地 Project，googletest 和 junit-gtest 来自外部 AAR；生产目标
+# unittest 不依赖这些测试能力。
 find_package(base REQUIRED CONFIG)
+find_package(native-diagnostics REQUIRED CONFIG)
 find_package(googletest REQUIRED CONFIG)
 find_package(junit-gtest REQUIRED CONFIG)
 
@@ -21,6 +23,8 @@ get_filename_component(NDK_SAMPLES_ROOT
 set(BASE_CPP_DIR "${NDK_SAMPLES_ROOT}/base/src/main/cpp")
 set(BASE_TEST_DIR "${NDK_SAMPLES_ROOT}/base/src/test/cpp")
 set(BASE_BENCHMARK_DIR "${NDK_SAMPLES_ROOT}/base/src/benchmark/cpp")
+set(NATIVE_DIAGNOSTICS_TEST_DIR
+    "${NDK_SAMPLES_ROOT}/native-diagnostics/src/test/cpp")
 
 add_app_library(adder OBJECT adder.cpp)
 
@@ -33,12 +37,15 @@ add_app_library(
 
 add_app_library(app_tests NO_VERSION_SCRIPT SHARED
     adder_test.cpp
+    native_diagnostics_jni_test_bridge.cpp
     "${BASE_TEST_DIR}/base_logging_test.cpp"
+    "${NATIVE_DIAGNOSTICS_TEST_DIR}/native_diagnostics_test.cpp"
 )
 target_include_directories(app_tests PRIVATE "${BASE_CPP_DIR}")
 target_link_libraries(app_tests
     PRIVATE
     base::base
+    native-diagnostics::native-diagnostics
     $<TARGET_OBJECTS:adder>
     googletest::gtest
     junit-gtest::junit-gtest
