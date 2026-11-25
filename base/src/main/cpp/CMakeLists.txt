@@ -10,6 +10,9 @@ add_app_library(base
     logging.cpp
 )
 
+# base 是静态库，公共助手会按真实 Target 类型自动跳过符号版本脚本；
+# 最终动态导出边界由链接并承载它的共享库负责，因此不需要 libbase.map.txt。
+
 # add_app_library() 已通过 AppLibrary.cmake 为目标声明 C++17；
 # base 的公开头文件和内部实现保持同一语言标准。
 # PUBLIC 是 CMake 目标自身的使用要求；Prefab 对外打包哪些头文件，

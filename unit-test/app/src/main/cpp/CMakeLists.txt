@@ -35,6 +35,8 @@ add_app_library(
     native-lib.cpp
 )
 
+# app_tests 虽然是共享库，但只作为测试执行入口，不发布稳定 Native ABI；
+# 它没有独立版本脚本，因此显式跳过公共导出规则。
 add_app_library(app_tests NO_VERSION_SCRIPT SHARED
     adder_test.cpp
     native_diagnostics_jni_test_bridge.cpp
